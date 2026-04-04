@@ -1,0 +1,5 @@
+Add RoomCard, ModePanel, and WeatherCard components
+
+Room cards with live light toggles and sensor stats,
+house mode grid (movie/gaming/goodnight/party/guest/DND),
+weather card with condition-reactive icons and colors.
