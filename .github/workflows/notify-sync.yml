@@ -1,0 +1,19 @@
+name: Notify Command Center of Issue Changes
+
+on:
+  issues:
+    types: [opened, closed, reopened, labeled, unlabeled, edited, deleted]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger sync in command-center
+        env:
+          GH_TOKEN: ${{ secrets.CROSS_REPO_TOKEN }}
+        run: |
+          gh api repos/jjmcmahon/mcmahon-command-center/dispatches \
+            -f event_type=issues-sync \
+            -f "client_payload[repo]=${{ github.repository }}" \
+            -f "client_payload[action]=${{ github.event.action }}" \
+            -f "client_payload[issue_number]=${{ github.event.issue.number }}"
