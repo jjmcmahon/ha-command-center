@@ -3,6 +3,8 @@ import { useHomeAssistant, useDomain } from './hooks/useHA';
 import RoomCard from './components/RoomCard';
 import ModePanel from './components/ModePanel';
 import WeatherCard from './components/WeatherCard';
+import LightingPanel from './components/LightingPanel';
+import ClimatePanel from './components/ClimatePanel';
 import { theme } from './styles/theme';
 
 // Pull from .env — create a .env file from .env.example
@@ -19,10 +21,19 @@ const ROOMS = [
   { name: 'Bathroom', areaId: 'bathroom' },
 ];
 
+type Tab = 'overview' | 'lighting' | 'climate';
+
+const TABS: { id: Tab; label: string; color: string }[] = [
+  { id: 'overview', label: 'Overview', color: theme.colors.neonCyan },
+  { id: 'lighting', label: 'Lighting', color: theme.colors.neonGreen },
+  { id: 'climate', label: 'Climate & Energy', color: theme.colors.neonOrange },
+];
+
 function App() {
   const [haUrl, setHaUrl] = useState(DEFAULT_HA_URL);
   const [haToken, setHaToken] = useState(DEFAULT_HA_TOKEN);
   const [configOpen, setConfigOpen] = useState(!DEFAULT_HA_URL || !DEFAULT_HA_TOKEN);
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
 
   const { entities, status, callHA } = useHomeAssistant(haUrl, haToken);
   const lights = useDomain(entities, 'light');
@@ -35,9 +46,15 @@ function App() {
     (entityId: string, currentState: string) => {
       const domain = entityId.split('.')[0];
       const service = currentState === 'on' ? 'turn_off' : 'turn_on';
-      // input_boolean uses homeassistant domain for toggle
       const callDomain = domain === 'input_boolean' ? 'input_boolean' : domain;
       callHA(callDomain, service, undefined, { entity_id: entityId });
+    },
+    [callHA]
+  );
+
+  const handleSetBrightness = useCallback(
+    (entityId: string, brightness: number) => {
+      callHA('light', 'turn_on', { brightness }, { entity_id: entityId });
     },
     [callHA]
   );
@@ -53,7 +70,7 @@ function App() {
       padding: '2rem',
     }}>
       {/* Header */}
-      <header style={{ marginBottom: '2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <header style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1 style={{
             fontSize: '2rem', fontWeight: 700,
@@ -83,6 +100,11 @@ function App() {
               boxShadow: status === 'connected' ? theme.shadows.neonGreen : 'none',
             }} />
             {status}
+            {status === 'connected' && (
+              <span style={{ color: theme.colors.textMuted, fontSize: '0.75rem' }}>
+                ({Object.keys(entities).length} entities)
+              </span>
+            )}
           </div>
         </div>
         <button
@@ -123,6 +145,7 @@ function App() {
                   background: theme.colors.bgSecondary, border: `1px solid ${theme.colors.borderDefault}`,
                   borderRadius: theme.radii.sm, color: theme.colors.textPrimary,
                   fontFamily: theme.fonts.mono, fontSize: '0.85rem',
+                  boxSizing: 'border-box',
                 }}
               />
             </div>
@@ -140,6 +163,7 @@ function App() {
                   background: theme.colors.bgSecondary, border: `1px solid ${theme.colors.borderDefault}`,
                   borderRadius: theme.radii.sm, color: theme.colors.textPrimary,
                   fontFamily: theme.fonts.mono, fontSize: '0.85rem',
+                  boxSizing: 'border-box',
                 }}
               />
             </div>
@@ -153,7 +177,7 @@ function App() {
         </div>
       )}
 
-      {/* Not connected state */}
+      {/* Error banner */}
       {status === 'error' && (
         <div style={{
           background: `${theme.colors.statusOffline}10`,
@@ -165,46 +189,82 @@ function App() {
         </div>
       )}
 
-      {/* Main dashboard grid */}
+      {/* Tab navigation */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-        gap: '1.5rem',
+        display: 'flex', gap: '0.25rem', marginBottom: '1.5rem',
+        borderBottom: `1px solid ${theme.colors.borderDefault}`,
+        paddingBottom: '0',
       }}>
-        {/* Quick Stats card */}
-        <div style={{
-          background: theme.colors.bgCard, borderRadius: theme.radii.lg,
-          padding: '1.5rem', border: `1px solid ${theme.colors.borderDefault}`,
-          boxShadow: theme.shadows.card,
-        }}>
-          <h2 style={{ fontSize: '1.1rem', margin: '0 0 1rem', color: theme.colors.neonCyan }}>
-            Quick Stats
-          </h2>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-            <Stat label="Lights" value={`${lights.filter(l => l.state === 'on').length}/${lights.length}`} />
-            <Stat label="Climate" value={climate[0]?.attributes?.current_temperature ? `${climate[0].attributes.current_temperature}°` : '—'} />
-            <Stat label="Weather" value={weatherEntity?.state ?? '—'} />
-            <Stat label="People Home" value={`${persons.filter(p => p.state === 'home').length}`} />
-          </div>
-        </div>
-
-        {/* Weather card */}
-        <WeatherCard entity={weatherEntity} />
-
-        {/* Mode panel */}
-        <ModePanel entities={entities} onToggle={handleToggle} />
-
-        {/* Room cards */}
-        {ROOMS.map((room) => (
-          <RoomCard
-            key={room.areaId}
-            name={room.name}
-            areaId={room.areaId}
-            entities={entities}
-            onToggleLight={handleToggle}
-          />
+        {TABS.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              padding: '0.6rem 1.25rem',
+              border: 'none',
+              borderBottom: `2px solid ${activeTab === tab.id ? tab.color : 'transparent'}`,
+              background: 'transparent',
+              color: activeTab === tab.id ? tab.color : theme.colors.textMuted,
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              fontFamily: theme.fonts.body,
+              fontWeight: activeTab === tab.id ? 600 : 400,
+              transition: 'all 0.2s ease',
+              marginBottom: '-1px',
+            }}
+          >
+            {tab.label}
+          </button>
         ))}
       </div>
+
+      {/* Tab content */}
+      {activeTab === 'overview' && (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+          gap: '1.5rem',
+        }}>
+          {/* Quick Stats */}
+          <div style={{
+            background: theme.colors.bgCard, borderRadius: theme.radii.lg,
+            padding: '1.5rem', border: `1px solid ${theme.colors.borderDefault}`,
+            boxShadow: theme.shadows.card,
+          }}>
+            <h2 style={{ fontSize: '1.1rem', margin: '0 0 1rem', color: theme.colors.neonCyan }}>
+              Quick Stats
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <Stat label="Lights" value={`${lights.filter(l => l.state === 'on').length}/${lights.length}`} />
+              <Stat label="Climate" value={climate[0]?.attributes?.current_temperature ? `${climate[0].attributes.current_temperature}°` : '—'} />
+              <Stat label="Weather" value={weatherEntity?.state ?? '—'} />
+              <Stat label="People Home" value={`${persons.filter(p => p.state === 'home').length}`} />
+            </div>
+          </div>
+
+          <WeatherCard entity={weatherEntity} />
+          <ModePanel entities={entities} onToggle={handleToggle} />
+
+          {ROOMS.map((room) => (
+            <RoomCard
+              key={room.areaId}
+              name={room.name}
+              areaId={room.areaId}
+              entities={entities}
+              onToggleLight={handleToggle}
+              onSetBrightness={handleSetBrightness}
+            />
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'lighting' && (
+        <LightingPanel entities={entities} onCallService={callHA} />
+      )}
+
+      {activeTab === 'climate' && (
+        <ClimatePanel entities={entities} onCallService={callHA} />
+      )}
     </div>
   );
 }
