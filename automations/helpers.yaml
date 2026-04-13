@@ -1,0 +1,23 @@
+# Input booleans used by automations
+# Add these via HA UI: Settings → Devices & Services → Helpers → Create Helper → Toggle
+# Or paste into configuration.yaml under `input_boolean:`
+
+input_boolean:
+  movie_mode:
+    name: Movie Mode
+    icon: mdi:movie-open
+  gaming_mode:
+    name: Gaming Mode
+    icon: mdi:gamepad-variant
+  goodnight:
+    name: Goodnight
+    icon: mdi:weather-night
+  party_mode:
+    name: Party Mode
+    icon: mdi:party-popper
+  guest_mode:
+    name: Guest Mode
+    icon: mdi:account-group
+  do_not_disturb:
+    name: Do Not Disturb
+    icon: mdi:bell-off

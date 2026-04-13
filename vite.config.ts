@@ -13,7 +13,7 @@ export default defineConfig({
     port: 3030,
     proxy: {
       '/api/websocket': {
-        target: 'ws://homeassistant.local:8123',
+        target: 'ws://192.168.1.190:8123',
         ws: true,
       },
     },

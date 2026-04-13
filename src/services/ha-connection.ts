@@ -10,7 +10,6 @@
 import {
   createConnection,
   subscribeEntities,
-  subscribeServices,
   createLongLivedTokenAuth,
   type Connection,
   type HassEntities,

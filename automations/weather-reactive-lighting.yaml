@@ -1,0 +1,200 @@
+# HA-635: Weather-reactive lighting
+# Adjusts indoor lighting based on outdoor weather conditions.
+# Requires: weather integration (already configured), Hue or SmartThings lights
+#
+# How it works:
+#   - Cloudy/rainy → boost indoor brightness to compensate
+#   - Sunny → pull back brightness, cooler temp
+#   - Stormy → warm cozy lighting
+#   - Runs only during daytime when lights are already on
+
+- id: weather_reactive_cloudy
+  alias: "Weather — Boost lights on cloudy days"
+  description: "When it gets cloudy during the day, bump up brightness to compensate for less natural light"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: weather.home
+      to: "cloudy"
+    - platform: state
+      entity_id: weather.home
+      to: "partlycloudy"
+  condition:
+    - condition: sun
+      after: sunrise
+      before: sunset
+    # Only adjust lights that are already on — don't turn on lights that are off
+    - condition: template
+      value_template: >
+        {{ states.light | selectattr('state', 'eq', 'on') | list | count > 0 }}
+  action:
+    - service: light.turn_on
+      target:
+        entity_id: >
+          {{ states.light
+             | selectattr('state', 'eq', 'on')
+             | map(attribute='entity_id')
+             | list }}
+      data:
+        brightness_pct: 90
+        color_temp_kelvin: 4500
+        transition: 10
+
+- id: weather_reactive_rainy
+  alias: "Weather — Warm cozy lights when raining"
+  description: "Shift to warmer, slightly dimmer lighting during rain"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: weather.home
+      to: "rainy"
+    - platform: state
+      entity_id: weather.home
+      to: "pouring"
+  condition:
+    - condition: sun
+      after: sunrise
+      before: sunset
+    - condition: template
+      value_template: >
+        {{ states.light | selectattr('state', 'eq', 'on') | list | count > 0 }}
+  action:
+    - service: light.turn_on
+      target:
+        entity_id: >
+          {{ states.light
+             | selectattr('state', 'eq', 'on')
+             | map(attribute='entity_id')
+             | list }}
+      data:
+        brightness_pct: 75
+        color_temp_kelvin: 2700
+        transition: 10
+
+- id: weather_reactive_stormy
+  alias: "Weather — Cozy mode during storms"
+  description: "Dim warm lighting during thunderstorms for a cozy atmosphere"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: weather.home
+      to: "lightning-rainy"
+    - platform: state
+      entity_id: weather.home
+      to: "lightning"
+    - platform: state
+      entity_id: weather.home
+      to: "hail"
+  condition:
+    - condition: template
+      value_template: >
+        {{ states.light | selectattr('state', 'eq', 'on') | list | count > 0 }}
+  action:
+    - service: light.turn_on
+      target:
+        entity_id: >
+          {{ states.light
+             | selectattr('state', 'eq', 'on')
+             | map(attribute='entity_id')
+             | list }}
+      data:
+        brightness_pct: 50
+        color_temp_kelvin: 2200
+        transition: 5
+
+- id: weather_reactive_sunny
+  alias: "Weather — Pull back lights when sunny"
+  description: "When it clears up, ease off indoor brightness since natural light is coming in"
+  mode: single
+  trigger:
+    - platform: state
+      entity_id: weather.home
+      to: "sunny"
+    - platform: state
+      entity_id: weather.home
+      to: "clear-night"
+  condition:
+    - condition: sun
+      after: sunrise
+      before: sunset
+    - condition: template
+      value_template: >
+        {{ states.light | selectattr('state', 'eq', 'on') | list | count > 0 }}
+  action:
+    - service: light.turn_on
+      target:
+        entity_id: >
+          {{ states.light
+             | selectattr('state', 'eq', 'on')
+             | map(attribute='entity_id')
+             | list }}
+      data:
+        brightness_pct: 60
+        color_temp_kelvin: 5000
+        transition: 15
+
+# Periodic check — weather may have been in a state for a while before lights were turned on
+- id: weather_reactive_periodic
+  alias: "Weather — Periodic adjustment check"
+  description: "Every 30 min during the day, re-check weather and adjust any lights that are on"
+  mode: single
+  trigger:
+    - platform: time_pattern
+      minutes: "/30"
+  condition:
+    - condition: sun
+      after: sunrise
+      before: sunset
+    - condition: template
+      value_template: >
+        {{ states.light | selectattr('state', 'eq', 'on') | list | count > 0 }}
+  action:
+    - choose:
+        - conditions:
+            - condition: state
+              entity_id: weather.home
+              state: "cloudy"
+          sequence:
+            - service: light.turn_on
+              target:
+                entity_id: >
+                  {{ states.light
+                     | selectattr('state', 'eq', 'on')
+                     | map(attribute='entity_id')
+                     | list }}
+              data:
+                brightness_pct: 90
+                color_temp_kelvin: 4500
+                transition: 10
+        - conditions:
+            - condition: state
+              entity_id: weather.home
+              state: "rainy"
+          sequence:
+            - service: light.turn_on
+              target:
+                entity_id: >
+                  {{ states.light
+                     | selectattr('state', 'eq', 'on')
+                     | map(attribute='entity_id')
+                     | list }}
+              data:
+                brightness_pct: 75
+                color_temp_kelvin: 2700
+                transition: 10
+        - conditions:
+            - condition: state
+              entity_id: weather.home
+              state: "sunny"
+          sequence:
+            - service: light.turn_on
+              target:
+                entity_id: >
+                  {{ states.light
+                     | selectattr('state', 'eq', 'on')
+                     | map(attribute='entity_id')
+                     | list }}
+              data:
+                brightness_pct: 60
+                color_temp_kelvin: 5000
+                transition: 10

@@ -1,0 +1,237 @@
+# HA-634: Presence-aware room lighting
+# Requires: motion sensors or Aqara FP2 mmWave sensors per room
+# Helpers needed: see helpers.yaml
+#
+# How it works:
+#   - Motion detected → lights on at brightness based on time of day
+#   - No motion for X minutes → lights off
+#   - Late night (11pm–6am) → dim warm light only
+#   - Guest mode active → disable auto-off
+
+# --- Living Room ---
+- id: presence_living_room_on
+  alias: "Living Room — Lights on when occupied"
+  description: "Turn on living room lights when motion is detected"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.living_room_occupancy
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: light.living_room
+      state: "off"
+  action:
+    - choose:
+        # Late night mode — dim warm light
+        - conditions:
+            - condition: time
+              after: "23:00:00"
+              before: "06:00:00"
+          sequence:
+            - service: light.turn_on
+              target:
+                entity_id: light.living_room
+              data:
+                brightness_pct: 15
+                color_temp_kelvin: 2200
+                transition: 2
+        # Daytime — full brightness
+        - conditions:
+            - condition: sun
+              after: sunrise
+              before: sunset
+          sequence:
+            - service: light.turn_on
+              target:
+                entity_id: light.living_room
+              data:
+                brightness_pct: 100
+                color_temp_kelvin: 4000
+                transition: 1
+      # Default — evening
+      default:
+        - service: light.turn_on
+          target:
+            entity_id: light.living_room
+          data:
+            brightness_pct: 70
+            color_temp_kelvin: 2700
+            transition: 2
+
+- id: presence_living_room_off
+  alias: "Living Room — Lights off when vacant"
+  description: "Turn off living room lights after no motion for 10 minutes"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.living_room_occupancy
+      to: "off"
+      for:
+        minutes: 10
+  condition:
+    # Don't auto-off in guest mode
+    - condition: state
+      entity_id: input_boolean.guest_mode
+      state: "off"
+  action:
+    - service: light.turn_off
+      target:
+        entity_id: light.living_room
+      data:
+        transition: 5
+
+# --- Bedroom ---
+- id: presence_bedroom_on
+  alias: "Bedroom — Lights on when occupied"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.bedroom_occupancy
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: light.bedroom
+      state: "off"
+    # Don't turn on lights if goodnight mode is active
+    - condition: state
+      entity_id: input_boolean.goodnight
+      state: "off"
+  action:
+    - choose:
+        - conditions:
+            - condition: time
+              after: "21:00:00"
+              before: "06:00:00"
+          sequence:
+            - service: light.turn_on
+              target:
+                entity_id: light.bedroom
+              data:
+                brightness_pct: 20
+                color_temp_kelvin: 2200
+                transition: 3
+      default:
+        - service: light.turn_on
+          target:
+            entity_id: light.bedroom
+          data:
+            brightness_pct: 80
+            color_temp_kelvin: 3000
+            transition: 2
+
+- id: presence_bedroom_off
+  alias: "Bedroom — Lights off when vacant"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.bedroom_occupancy
+      to: "off"
+      for:
+        minutes: 15
+  condition:
+    - condition: state
+      entity_id: input_boolean.guest_mode
+      state: "off"
+  action:
+    - service: light.turn_off
+      target:
+        entity_id: light.bedroom
+      data:
+        transition: 5
+
+# --- Office ---
+- id: presence_office_on
+  alias: "Office — Lights on when occupied"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.office_occupancy
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: light.office
+      state: "off"
+  action:
+    - service: light.turn_on
+      target:
+        entity_id: light.office
+      data:
+        brightness_pct: 100
+        color_temp_kelvin: 5000
+        transition: 1
+
+- id: presence_office_off
+  alias: "Office — Lights off when vacant"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.office_occupancy
+      to: "off"
+      for:
+        minutes: 5
+  condition:
+    - condition: state
+      entity_id: input_boolean.guest_mode
+      state: "off"
+  action:
+    - service: light.turn_off
+      target:
+        entity_id: light.office
+      data:
+        transition: 3
+
+# --- Kitchen ---
+- id: presence_kitchen_on
+  alias: "Kitchen — Lights on when occupied"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.kitchen_occupancy
+      to: "on"
+  condition:
+    - condition: state
+      entity_id: light.kitchen
+      state: "off"
+  action:
+    - choose:
+        - conditions:
+            - condition: time
+              after: "23:00:00"
+              before: "06:00:00"
+          sequence:
+            - service: light.turn_on
+              target:
+                entity_id: light.kitchen
+              data:
+                brightness_pct: 10
+                color_temp_kelvin: 2200
+                transition: 2
+      default:
+        - service: light.turn_on
+          target:
+            entity_id: light.kitchen
+          data:
+            brightness_pct: 100
+            color_temp_kelvin: 4000
+            transition: 1
+
+- id: presence_kitchen_off
+  alias: "Kitchen — Lights off when vacant"
+  mode: restart
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.kitchen_occupancy
+      to: "off"
+      for:
+        minutes: 5
+  condition:
+    - condition: state
+      entity_id: input_boolean.guest_mode
+      state: "off"
+  action:
+    - service: light.turn_off
+      target:
+        entity_id: light.kitchen
+      data:
+        transition: 3
