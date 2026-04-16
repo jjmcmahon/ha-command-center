@@ -1,67 +1,118 @@
 # Home Assistant – Smart Home Integration
 
-Custom React dashboard + Home Assistant OS setup for the McMahon household. The Beelink S12 runs HAOS, Portainer (Docker), and Uptime Kuma. This repo is for the custom dashboard that will connect to HA via websocket.
+Custom React dashboard + Home Assistant OS on Beelink MINI S12. This repo is for the custom dashboard connecting to HA via websocket.
+
+## Start of Session – READ THIS FIRST
+
+1. **Read the prior handoff** → `F:\obsidian\AgentVault\AgentVault\Home Assistant\SESSION_HANDOFF.md`
+   - Older numbered handoffs (`SESSION-3-HANDOFF.md` through `SESSION-6-HANDOFF.md`) exist for historical reference but are deprecated. The canonical file is `SESSION_HANDOFF.md` going forward.
+2. **Skim the PIF** → `F:\obsidian\AgentVault\AgentVault\Home Assistant\PROJECT.pif.yaml`
+3. **Check device inventory** if doing hardware/integration work → `F:\obsidian\AgentVault\AgentVault\Home Assistant\DEVICE-INVENTORY.md`
+4. **Check open GitHub Issues** → `gh issue list --repo jjmcmahon/ha-command-center --state open --label agent:cowork`
+
+## This Machine (Tooling You Already Have)
+
+| Tool | Path | Use for |
+|------|------|---------|
+| GitHub CLI | `F:\jjdev\tools\gh-cli\gh.exe` | Issues, PRs, releases, repo ops |
+| AWS CLI | `F:\jjdev\tools\aws-cli\aws.exe` | (not used for HA) |
+| Git | system path (`git`) | Standard git ops |
+| Node / npm | system path (`node`, `npm`) | Vite + React build |
+| Desktop Commander | MCP (`mcp__Desktop_Commander__*`) | Read/write files on F:, run shell commands |
+| Obsidian (AgentVault) | `F:\obsidian\AgentVault\AgentVault\` | Session handoffs, PIFs, project notes |
+| KB | `F:\jjdev\claude\.claude\kb\` | Reusable patterns (synced to /kb daily 8 AM) |
+| Cowork temp | `F:\jjdev\claude-temp\` | Throwaway working files – NOT the workspace |
+| HAOS web UI | http://192.168.1.190:8123 | Home Assistant config, integrations, automations |
+
+## When Tooling Sucks – Tell JJ, Don't Hack Around It
+
+Surface root causes. Don't write batch wrappers, shell hacks, or polyfills without flagging the underlying issue first.
+
+## Infrastructure Changes — Pre-Approval Required
+
+**DO NOT create, modify, or delete infrastructure resources without explicit approval from JJ.** This includes but is not limited to:
+
+- Docker/Portainer stacks (create, update, delete)
+- AWS resources (Lambda, EC2, S3, CloudFormation stacks)
+- Firebase resources (Firestore indexes, Functions, Auth config)
+- DNS records
+- CI/CD pipeline changes
+- Database schema migrations
+- Vercel project settings or environment variables
+
+**Before making any infra change:**
+
+1. **Describe the change** — what you want to do and why
+2. **Wait for JJ's explicit "go ahead"** — don't proceed on your own judgment
+3. **Log it in `INFRA-CHANGELOG.md`** in the project root — entry MUST include: date, actor, type (create/modify/delete), resources affected, motivation, and rollback steps
+4. **After applying** — verify the change worked and update the changelog entry
+
+If `INFRA-CHANGELOG.md` doesn't exist in the project yet, create it using the template from `F:\jjdev\projects\jj-portfolio\templates\INFRA-CHANGELOG.md`.
+
+Reading code, checking status, and querying infrastructure state (e.g., `docker ps`, `aws s3 ls`) are fine without approval. The rule is about *changes*, not *reads*.
+
+## Directory Hygiene
+
+- Active scratch / WIP → `F:\jjdev\claude-temp\`
+- Finalized deliverables → `home-assistant\outputs\`
+- HA config exports / device dumps → `F:\obsidian\AgentVault\AgentVault\Home Assistant\` (the inventory + runbook structure already exists there)
 
 ## The 30-Second Version
 
-Home Assistant is installed and running on a Beelink MINI S12 with a 512GB SSD. Core integrations are configured (Hue, SmartThings, Apple TV, HomePod, printer). Portainer and Uptime Kuma are deployed. The custom React dashboard (this repo) is scaffolded but NOT yet connected to HA. We're at the end of Phase 1 (Foundation) heading into Phase 2 (automations, dashboard build).
+HAOS 17.2 running on Beelink S12 (Intel N95, 12GB RAM, 512GB SSD) at 192.168.1.190. Core integrations configured (Hue, SmartThings, Apple TV, HomePod, printer). Portainer + Uptime Kuma deployed. Custom React dashboard (this repo) is scaffolded but **not connected to HA yet**. End of Phase 1, heading into Phase 2 (automations, dashboard build).
 
-## Where We Are (Last Updated: 2026-04-12, based on Session 6)
-
-### What's Done
-- HAOS 17.2 / Core 2026.4.1 running on Beelink internal 512GB SSD
-- Static IP: 192.168.1.190 | URL: http://homeassistant.local:8123
-- Add-ons installed: Terminal & SSH, HACS, Portainer (alexbelgium repo)
-- Uptime Kuma running via Portainer at http://192.168.1.190:3001
-  - Monitors: cmd.mcmahonmc.com, HA, Ollama, gateway
-  - Discord webhook alerts ON for always-on services
-- Integrations: Philips Hue, SmartThings, Apple TV x2 (paired), HomePod Mini, Homey Pro, HomeKitty bridge, HP ENVY 5660
-- HackThePlant Kali container also runs on this Beelink via Portainer
+## Where We Are (Last Updated: 2026-04-15)
 
 ### What's Pending
-- **Apple TV (Media Room)** – needs pairing, remote not found / need input switch
-- **Alexa integration** – needs Amazon app-based 2FA first
-- **Hardware arriving:** SLZB-06 Zigbee coordinator, Aeotec Z-Stick 7 (Z-Wave)
-- **Phase 2:** Automations, scenes, device organization
-- **Custom dashboard:** ha-command-center React app needs HA long-lived access token to connect
+- Apple TV (Media Room) needs pairing
+- Alexa integration needs Amazon 2FA
+- Hardware arriving: SLZB-06 Zigbee coordinator, Aeotec Z-Stick 7
+- Custom dashboard needs HA long-lived access token to connect
 
-### GitHub Issues (18+ open)
-`gh issue list --repo jjmcmahon/ha-command-center --state open` – prefix HA-
-Topics: Voice assistant (Whisper/Piper/Wyoming), camera/NVR (Frigate, Coral TPU), climate, energy, lighting, dashboard, room management
-
-### Shopping List (Phase 2+)
-- SLZB-06 Zigbee Coordinator ($35-45)
-- Aeotec Z-Stick 7 Z-Wave ($55)
-- Google Coral USB TPU for Frigate ($35-60)
-- Aqara FP2 mmWave presence sensor ($62-83 each, Phase 3)
-- ESP32-S3-BOX-3 voice satellite ($45-55, Phase 4)
+### Open GitHub Issues
+**Repo:** `jjmcmahon/ha-command-center` | **Prefix:** `HA-`
+```bash
+gh issue list --repo jjmcmahon/ha-command-center --state open --label agent:cowork
+```
 
 ## Stack
-- **Dashboard repo:** React + Vite + TypeScript + Tailwind + home-assistant-js-websocket
-- **HA Server:** HAOS 17.2 on Beelink MINI S12 (Intel N95, 12GB RAM, 512GB SSD)
-- **Docker:** Portainer add-on manages containers (Uptime Kuma, Kali/HackThePlant)
+- **Dashboard:** React + Vite + TypeScript + Tailwind + home-assistant-js-websocket
+- **Server:** HAOS 17.2 on Beelink (also runs Portainer, Uptime Kuma, Kali/HackThePlant)
+
+## Critical Gotchas
+
+- **Don't lose the HA long-lived access token** – it's in `F:\jjdev\keys\` (don't commit). Regenerating is a pain.
+- **Beelink also runs HackThePlant Kali container** – don't reboot or take it offline without checking with JJ.
+- **Numbered handoff files exist** (`SESSION-3-HANDOFF.md` through `SESSION-6-HANDOFF.md`) – these are historical. Going forward, use the single canonical `SESSION_HANDOFF.md`.
+
+## Knowledge Base (KB)
+
+Read at `F:\jjdev\claude\.claude\kb\`. Categories: `environment/`, `patterns/`, `tools/`, `troubleshooting/`, `workflows/`. Write reusable HA patterns (websocket, automation patterns, integration recipes) at end-of-session.
 
 ## Deeper Context
 - **PIF:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\PROJECT.pif.yaml`
-- **Latest handoff:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\SESSION-6-HANDOFF.md`
+- **Latest handoff:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\SESSION_HANDOFF.md`
 - **Device inventory:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\DEVICE-INVENTORY.md`
 - **Day 1 runbook:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\DAY1-RUNBOOK.md`
+- **HACS install list:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\HACS-INSTALL-LIST.md`
 - **Cost ledger:** `F:\jjdev\projects\PPM - Personal Project Manager\costs\COST-LEDGER.md`
+- **Architecture:** `ARCHITECTURE.md` in this repo root — infra map, stack details, recovery playbook
+- **Infra changelog:** `INFRA-CHANGELOG.md` in this repo root — every infra change logged
 
-## End-of-Session Checklist
-**Always:**
-1. Write/update handoff → AgentVault `SESSION_HANDOFF.md` (this is the canonical location)
-2. If tasks changed: update GitHub Issues (close completed, create new)
+## End of Session
+
+1. **Write/update the handoff** → `F:\obsidian\AgentVault\AgentVault\Home Assistant\SESSION_HANDOFF.md` (canonical filename – don't create new `SESSION-N-HANDOFF.md` files)
+2. **Push to main** – triggers Firestore sync for dashboard
+3. **Track work in GitHub Issues** – prefix `HA-`, label `agent:cowork`
 
 **If applicable:**
-3. If code changed: push to main (triggers Firestore sync for dashboard)
-4. If costs changed: note in handoff
-5. If another project is affected: note in handoff
-
-## GitHub Issues Protocol
-**Repo:** `jjmcmahon/ha-command-center` | **Prefix:** `HA-`
-```bash
-gh issue list --repo jjmcmahon/ha-command-center --state open
-```
+- Cost changed → note in handoff + update `PPM\costs\COST-LEDGER.md`
+- Found a reusable pattern → write to KB
+- New critical gotcha → add above
+- Scratch in repo root → move to `claude-temp\` or delete
+- Infrastructure changed → verify `INFRA-CHANGELOG.md` entry is complete with rollback steps
+- Architecture changed → update `ARCHITECTURE.md` (stack, infra map, or recovery playbook)
 
 ## Monthly Cost: ~$3.00
+
+Beelink amortized power + electricity. No cloud costs.
