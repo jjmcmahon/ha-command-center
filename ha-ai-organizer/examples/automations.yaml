@@ -1,0 +1,140 @@
+# HA-AI Home Organizer — Sample Automations
+# Add these to your automations.yaml or create via HA UI.
+
+# ---- Morning Chore Reminder ----
+# The add-on handles this internally via cron, but you can also
+# trigger HA automations based on sensor state:
+
+- alias: "Organizer: Chores Overdue Alert"
+  description: "Notify when overdue chores exceed threshold"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.organizer_chores_overdue
+      above: 3
+  condition: []
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🧹 Chores Piling Up"
+        message: >
+          {{ states('sensor.organizer_chores_overdue') }} chores are overdue!
+          {% set items = state_attr('sensor.organizer_chores_overdue', 'overdue_list') %}
+          {% for c in items[:5] %}
+          • {{ c.name }}
+          {% endfor %}
+        data:
+          tag: organizer-chores-overdue
+
+# ---- Low Stock Shopping Alert ----
+- alias: "Organizer: Low Stock Alert"
+  description: "Notify when inventory items need restocking"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.organizer_inventory_low
+      above: 0
+  condition:
+    - condition: time
+      after: "09:00:00"
+      before: "21:00:00"
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📦 Shopping List"
+        message: >
+          {{ states('sensor.organizer_inventory_low') }} item(s) need restocking:
+          {% set items = state_attr('sensor.organizer_inventory_low', 'low_items') %}
+          {% for i in items %}
+          • {{ i.name }} ({{ i.quantity }} {{ i.unit }} left)
+          {% endfor %}
+        data:
+          tag: organizer-shopping
+
+# ---- Maintenance Overdue ----
+- alias: "Organizer: Maintenance Overdue"
+  description: "Alert when home maintenance is overdue"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.organizer_maintenance_overdue
+      above: 0
+  condition: []
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🔧 Maintenance Overdue"
+        message: >
+          {{ states('sensor.organizer_maintenance_overdue') }} maintenance item(s) overdue:
+          {% set items = state_attr('sensor.organizer_maintenance_overdue', 'overdue_list') %}
+          {% for m in items %}
+          • {{ m.name }} ({{ m.category }}) — was due {{ m.due }}
+          {% endfor %}
+        data:
+          tag: organizer-maintenance
+
+# ---- Urgent Task Created ----
+- alias: "Organizer: Urgent Task Alert"
+  description: "Immediate notification when urgent tasks appear"
+  trigger:
+    - platform: numeric_state
+      entity_id: sensor.organizer_tasks_urgent
+      above: 0
+  condition: []
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "🚨 Urgent Task"
+        message: >
+          {% set tasks = state_attr('sensor.organizer_tasks_urgent', 'urgent_list') %}
+          {% for t in tasks %}
+          {{ t.title }} — assigned to {{ t.assigned_to or 'nobody' }}
+          {% endfor %}
+        data:
+          tag: organizer-urgent
+          importance: high
+
+# ---- Weekly Maintenance Lookahead (Sunday evening) ----
+- alias: "Organizer: Weekly Maintenance Preview"
+  description: "Sunday evening preview of upcoming maintenance"
+  trigger:
+    - platform: time
+      at: "18:00:00"
+  condition:
+    - condition: time
+      weekday:
+        - sun
+  action:
+    - service: notify.mobile_app
+      data:
+        title: "📅 This Week's Maintenance"
+        message: >
+          {% set items = state_attr('sensor.organizer_maintenance_upcoming', 'upcoming_list') %}
+          {% if items and items | length > 0 %}
+          {% for m in items %}
+          • {{ m.name }} — due {{ m.due }}{% if m.cost_estimate %} (~${{ m.cost_estimate }}){% endif %}
+          {% endfor %}
+          {% else %}
+          Nothing scheduled — enjoy the week!
+          {% endif %}
+        data:
+          tag: organizer-weekly
+
+# ---- REST Command Examples ----
+# You can call the organizer API from HA automations:
+#
+# rest_command:
+#   organizer_complete_chore:
+#     url: "http://localhost:3100/api/chores/{{ chore_id }}/complete"
+#     method: POST
+#     content_type: "application/json"
+#     payload: '{"done_by": "{{ done_by }}"}'
+#
+#   organizer_add_task:
+#     url: "http://localhost:3100/api/tasks"
+#     method: POST
+#     content_type: "application/json"
+#     payload: '{"title": "{{ title }}", "assigned_to": "{{ assigned_to }}", "priority": "{{ priority }}"}'
+#
+#   organizer_use_inventory:
+#     url: "http://localhost:3100/api/inventory/{{ item_id }}/use"
+#     method: POST
+#     content_type: "application/json"
+#     payload: '{"amount": {{ amount }}}'

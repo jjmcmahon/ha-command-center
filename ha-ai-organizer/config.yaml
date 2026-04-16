@@ -1,0 +1,59 @@
+# HA-AI Home Organizer — Home Assistant Add-on
+# Household management: chores, inventory, maintenance, family tasks
+# No standalone UI — publishes sensors/entities into HA for native dashboards
+
+name: "HA-AI Home Organizer"
+description: "Household management engine — chores, inventory, maintenance schedules, and family task board. Publishes HA sensors and exposes REST API for automations."
+version: "0.1.0"
+slug: "ha_ai_organizer"
+url: "https://github.com/jjmcmahon/ha-command-center"
+
+arch:
+  - aarch64
+  - amd64
+  - armhf
+  - armv7
+  - i386
+
+startup: application
+boot: auto
+
+# No Ingress UI — everything surfaces through HA entities
+ingress: false
+
+# Internal API port (accessible within HA network)
+ports:
+  3100/tcp: null
+ports_description:
+  3100/tcp: "Organizer REST API"
+
+# Persistent data survives add-on updates
+map:
+  - type: data
+    read_only: false
+
+# Options the user can configure in the add-on settings
+options:
+  household_name: "McMahon"
+  family_members:
+    - name: "JJ"
+      role: "admin"
+  notification_entity: "notify.mobile_app"
+  chore_reminder_time: "08:00"
+  maintenance_lookahead_days: 14
+  sensor_update_interval_minutes: 5
+
+schema:
+  household_name: str
+  family_members:
+    - name: str
+      role: "list(admin|member|kid)"
+  notification_entity: str
+  chore_reminder_time: str
+  maintenance_lookahead_days: int
+  sensor_update_interval_minutes: int
+
+# HA API access for creating sensors and sending notifications
+hassio_api: true
+homeassistant_api: true
+auth_api: true

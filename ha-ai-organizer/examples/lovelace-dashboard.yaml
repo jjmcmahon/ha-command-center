@@ -1,0 +1,165 @@
+# HA-AI Home Organizer — Sample Lovelace Dashboard
+# Copy this into your HA dashboard YAML or import via UI editor.
+#
+# Prerequisites:
+#   - HA-AI Organizer add-on running (publishes sensor.organizer_* entities)
+#   - Optional: custom:mushroom-entity-card for nicer styling
+#
+# Sensors published by the add-on:
+#   sensor.organizer_chores_total
+#   sensor.organizer_chores_overdue
+#   sensor.organizer_chores_due_soon
+#   sensor.organizer_inventory_total
+#   sensor.organizer_inventory_low
+#   sensor.organizer_maintenance_overdue
+#   sensor.organizer_maintenance_upcoming
+#   sensor.organizer_tasks_todo
+#   sensor.organizer_tasks_in_progress
+#   sensor.organizer_tasks_urgent
+
+title: Home Organizer
+views:
+  - title: Overview
+    path: organizer
+    icon: mdi:home-heart
+    badges: []
+    cards:
+      # ---- Household Score ----
+      - type: custom:mushroom-entity-card
+        entity: sensor.organizer_chores_overdue
+        name: Household Health
+        icon: mdi:home-heart
+        layout: vertical
+
+      # ---- Chores Section ----
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## 🧹 Chores"
+
+          - type: horizontal-stack
+            cards:
+              - type: entity
+                entity: sensor.organizer_chores_total
+                name: Total
+                icon: mdi:broom
+              - type: entity
+                entity: sensor.organizer_chores_overdue
+                name: Overdue
+                icon: mdi:alert-circle
+              - type: entity
+                entity: sensor.organizer_chores_due_soon
+                name: Due Soon
+                icon: mdi:clock-alert
+
+          # Overdue chores list (uses attribute)
+          - type: markdown
+            content: >
+              {% set items = state_attr('sensor.organizer_chores_overdue', 'overdue_list') %}
+              {% if items and items | length > 0 %}
+              **Overdue:**
+              {% for item in items %}
+              - {{ item.name }} ({{ item.assigned_to or 'unassigned' }}) — due {{ item.due }}
+              {% endfor %}
+              {% else %}
+              ✅ All chores up to date!
+              {% endif %}
+
+      # ---- Inventory Section ----
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## 📦 Inventory"
+
+          - type: horizontal-stack
+            cards:
+              - type: entity
+                entity: sensor.organizer_inventory_total
+                name: Items Tracked
+                icon: mdi:package-variant
+              - type: entity
+                entity: sensor.organizer_inventory_low
+                name: Low Stock
+                icon: mdi:package-variant-closed-remove
+
+          - type: markdown
+            content: >
+              {% set items = state_attr('sensor.organizer_inventory_low', 'low_items') %}
+              {% if items and items | length > 0 %}
+              **Shopping List:**
+              {% for item in items %}
+              - {{ item.name }} ({{ item.category }}) — {{ item.quantity }}/{{ item.min_quantity }} {{ item.unit }}
+              {% endfor %}
+              {% else %}
+              ✅ All stocked up!
+              {% endif %}
+
+      # ---- Maintenance Section ----
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## 🔧 Maintenance"
+
+          - type: horizontal-stack
+            cards:
+              - type: entity
+                entity: sensor.organizer_maintenance_overdue
+                name: Overdue
+                icon: mdi:wrench-clock
+              - type: entity
+                entity: sensor.organizer_maintenance_upcoming
+                name: Upcoming
+                icon: mdi:calendar-wrench
+
+          - type: markdown
+            content: >
+              {% set overdue = state_attr('sensor.organizer_maintenance_overdue', 'overdue_list') %}
+              {% set upcoming = state_attr('sensor.organizer_maintenance_upcoming', 'upcoming_list') %}
+              {% if overdue and overdue | length > 0 %}
+              **Overdue:**
+              {% for m in overdue %}
+              - ⚠️ {{ m.name }} ({{ m.category }}) — was due {{ m.due }}
+              {% endfor %}
+              {% endif %}
+              {% if upcoming and upcoming | length > 0 %}
+              **Coming Up:**
+              {% for m in upcoming %}
+              - {{ m.name }} — due {{ m.due }}{% if m.cost_estimate %} (~${{ m.cost_estimate }}){% endif %}
+              {% endfor %}
+              {% endif %}
+              {% if (not overdue or overdue | length == 0) and (not upcoming or upcoming | length == 0) %}
+              ✅ No maintenance items on the radar
+              {% endif %}
+
+      # ---- Tasks Section ----
+      - type: vertical-stack
+        cards:
+          - type: markdown
+            content: "## ✅ Family Tasks"
+
+          - type: horizontal-stack
+            cards:
+              - type: entity
+                entity: sensor.organizer_tasks_todo
+                name: To Do
+                icon: mdi:checkbox-blank-outline
+              - type: entity
+                entity: sensor.organizer_tasks_in_progress
+                name: In Progress
+                icon: mdi:progress-check
+              - type: entity
+                entity: sensor.organizer_tasks_urgent
+                name: Urgent
+                icon: mdi:alert
+
+          - type: markdown
+            content: >
+              {% set urgent = state_attr('sensor.organizer_tasks_urgent', 'urgent_list') %}
+              {% if urgent and urgent | length > 0 %}
+              **Urgent:**
+              {% for t in urgent %}
+              - 🚨 {{ t.title }} ({{ t.assigned_to or 'unassigned' }})
+              {% endfor %}
+              {% else %}
+              ✅ Nothing urgent right now
+              {% endif %}

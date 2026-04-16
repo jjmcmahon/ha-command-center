@@ -1,0 +1,56 @@
+# HA-AI Home Organizer — REST Commands
+# Add to your configuration.yaml to call the organizer API from automations/scripts.
+#
+# Usage in automations:
+#   service: rest_command.organizer_complete_chore
+#   data:
+#     chore_id: "1"
+#     done_by: "JJ"
+
+rest_command:
+  # Complete a chore
+  organizer_complete_chore:
+    url: "http://localhost:3100/api/chores/{{ chore_id }}/complete"
+    method: POST
+    content_type: "application/json"
+    payload: '{"done_by": "{{ done_by | default("unknown") }}", "notes": "{{ notes | default("") }}"}'
+
+  # Create a new chore
+  organizer_add_chore:
+    url: "http://localhost:3100/api/chores"
+    method: POST
+    content_type: "application/json"
+    payload: '{"name": "{{ name }}", "assigned_to": "{{ assigned_to | default("") }}", "frequency": "{{ frequency | default("weekly") }}", "room": "{{ room | default("") }}", "priority": "{{ priority | default("normal") }}"}'
+
+  # Create a task
+  organizer_add_task:
+    url: "http://localhost:3100/api/tasks"
+    method: POST
+    content_type: "application/json"
+    payload: '{"title": "{{ title }}", "assigned_to": "{{ assigned_to | default("") }}", "priority": "{{ priority | default("normal") }}", "category": "{{ category | default("general") }}"}'
+
+  # Mark a task done
+  organizer_complete_task:
+    url: "http://localhost:3100/api/tasks/{{ task_id }}/done"
+    method: POST
+    content_type: "application/json"
+
+  # Use/decrement inventory
+  organizer_use_inventory:
+    url: "http://localhost:3100/api/inventory/{{ item_id }}/use"
+    method: POST
+    content_type: "application/json"
+    payload: '{"amount": {{ amount | default(1) }}}'
+
+  # Restock inventory
+  organizer_restock_inventory:
+    url: "http://localhost:3100/api/inventory/{{ item_id }}/restock"
+    method: POST
+    content_type: "application/json"
+    payload: '{"quantity": {{ quantity }}}'
+
+  # Complete maintenance
+  organizer_complete_maintenance:
+    url: "http://localhost:3100/api/maintenance/{{ item_id }}/complete"
+    method: POST
+    content_type: "application/json"

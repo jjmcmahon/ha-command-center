@@ -13,7 +13,7 @@ export default defineConfig({
     port: 3030,
     proxy: {
       '/api/websocket': {
-        target: 'ws://192.168.1.190:8123',
+        target: 'ws://192.168.120.3:8123',
         ws: true,
       },
     },

@@ -4,7 +4,7 @@ Automation YAML files for the McMahon smart home. These are stored in the repo f
 
 ## Deploying to HA
 
-1. SSH into the Beelink (`ssh root@192.168.1.190`) or use the File Editor add-on
+1. SSH into the Beelink (`ssh root@192.168.120.3`) or use the File Editor add-on
 2. Copy the YAML content into HA's `automations.yaml` or use the UI automation editor
 3. For helpers: add `input_boolean` entries from `helpers.yaml` to `configuration.yaml`
 4. Reload automations: Settings → Automations → 3-dot menu → Reload automations

@@ -139,7 +139,7 @@ function App() {
                 type="text"
                 value={haUrl}
                 onChange={(e) => setHaUrl(e.target.value)}
-                placeholder="http://192.168.1.190:8123"
+                placeholder="http://192.168.120.3:8123"
                 style={{
                   width: '100%', padding: '0.5rem 0.75rem',
                   background: theme.colors.bgSecondary, border: `1px solid ${theme.colors.borderDefault}`,

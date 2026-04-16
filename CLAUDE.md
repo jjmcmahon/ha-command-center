@@ -9,6 +9,7 @@ Custom React dashboard + Home Assistant OS on Beelink MINI S12. This repo is for
 2. **Skim the PIF** → `F:\obsidian\AgentVault\AgentVault\Home Assistant\PROJECT.pif.yaml`
 3. **Check device inventory** if doing hardware/integration work → `F:\obsidian\AgentVault\AgentVault\Home Assistant\DEVICE-INVENTORY.md`
 4. **Check open GitHub Issues** → `gh issue list --repo jjmcmahon/ha-command-center --state open --label agent:cowork`
+5. **Verify git is initialized and has a remote.** Run `git status` and `git remote -v`. If this project isn't a git repo yet, initialize it: `git init`, create a GitHub repo with `gh repo create`, add the remote, and push. Every project must be version controlled — no exceptions.
 
 ## This Machine (Tooling You Already Have)
 
