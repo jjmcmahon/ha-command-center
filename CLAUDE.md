@@ -28,7 +28,7 @@ Custom React dashboard + Home Assistant OS on Beelink MINI S12. This repo is for
 
 Surface root causes. Don't write batch wrappers, shell hacks, or polyfills without flagging the underlying issue first.
 
-## Infrastructure Changes — Pre-Approval Required
+## Infrastructure Changes – Pre-Approval Required
 
 **DO NOT create, modify, or delete infrastructure resources without explicit approval from JJ.** This includes but is not limited to:
 
@@ -42,10 +42,10 @@ Surface root causes. Don't write batch wrappers, shell hacks, or polyfills witho
 
 **Before making any infra change:**
 
-1. **Describe the change** — what you want to do and why
-2. **Wait for JJ's explicit "go ahead"** — don't proceed on your own judgment
-3. **Log it in `INFRA-CHANGELOG.md`** in the project root — entry MUST include: date, actor, type (create/modify/delete), resources affected, motivation, and rollback steps
-4. **After applying** — verify the change worked and update the changelog entry
+1. **Describe the change** – what you want to do and why
+2. **Wait for JJ's explicit "go ahead"** – don't proceed on your own judgment
+3. **Log it in `INFRA-CHANGELOG.md`** in the project root – entry MUST include: date, actor, type (create/modify/delete), resources affected, motivation, and rollback steps
+4. **After applying** – verify the change worked and update the changelog entry
 
 If `INFRA-CHANGELOG.md` doesn't exist in the project yet, create it using the template from `F:\jjdev\projects\jj-portfolio\templates\INFRA-CHANGELOG.md`.
 
@@ -89,15 +89,28 @@ gh issue list --repo jjmcmahon/ha-command-center --state open --label agent:cowo
 
 Read at `F:\jjdev\claude\.claude\kb\`. Categories: `environment/`, `patterns/`, `tools/`, `troubleshooting/`, `workflows/`. Write reusable HA patterns (websocket, automation patterns, integration recipes) at end-of-session.
 
+## Centralized Docs: jj-portfolio
+
+The `jj-portfolio` repo (`F:\jjdev\projects\jj-portfolio`, GitHub: `jjmcmahon/jj-portfolio`) is the **centralized, version-controlled documentation repo** for the entire portfolio. It contains:
+
+- `ppm/` – Portfolio management (cost ledger, specs, architecture overview, archive)
+- `kb/` – Version-controlled mirror of the Knowledge Base
+- `agentvault/` – Backup of AgentVault session handoffs and PIFs
+- `templates/` – Shared templates: ARCHITECTURE.md, INFRA-CHANGELOG.md, CLAUDE-MD-TEMPLATE.md
+
+**When you update KB content**, update both the local copy (`F:\jjdev\claude\.claude\kb\`) and the repo copy (`F:\jjdev\projects\jj-portfolio\kb\`). The local copy syncs to Firestore; the repo copy is the version-controlled backup.
+
+**When you update PPM content** (cost ledger, specs), update the repo copy at `F:\jjdev\projects\jj-portfolio\ppm\`.
+
 ## Deeper Context
 - **PIF:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\PROJECT.pif.yaml`
 - **Latest handoff:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\SESSION_HANDOFF.md`
 - **Device inventory:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\DEVICE-INVENTORY.md`
 - **Day 1 runbook:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\DAY1-RUNBOOK.md`
 - **HACS install list:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\HACS-INSTALL-LIST.md`
-- **Cost ledger:** `F:\jjdev\projects\PPM - Personal Project Manager\costs\COST-LEDGER.md`
-- **Architecture:** `ARCHITECTURE.md` in this repo root — infra map, stack details, recovery playbook
-- **Infra changelog:** `INFRA-CHANGELOG.md` in this repo root — every infra change logged
+- **Cost ledger:** `F:\jjdev\projects\jj-portfolio\ppm\costs\COST-LEDGER.md`
+- **Architecture:** `ARCHITECTURE.md` in this repo root – infra map, stack details, recovery playbook
+- **Infra changelog:** `INFRA-CHANGELOG.md` in this repo root – every infra change logged
 
 ## End of Session
 
@@ -106,7 +119,7 @@ Read at `F:\jjdev\claude\.claude\kb\`. Categories: `environment/`, `patterns/`, 
 3. **Track work in GitHub Issues** – prefix `HA-`, label `agent:cowork`
 
 **If applicable:**
-- Cost changed → note in handoff + update `PPM\costs\COST-LEDGER.md`
+- Cost changed → note in handoff + update `F:\jjdev\projects\jj-portfolio\ppm\costs\COST-LEDGER.md`
 - Found a reusable pattern → write to KB
 - New critical gotcha → add above
 - Scratch in repo root → move to `claude-temp\` or delete
