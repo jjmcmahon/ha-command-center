@@ -19,16 +19,90 @@ Every infrastructure change must be logged here **before the change is applied**
 
 ## Changelog
 
-### 2026-04-17 — Expose HAOS via Tailscale Serve + CORS allow cmd.mcmahonmc.com
+### 2026-04-17 — HA Firestore bridge (read path for /homeassistant dashboard)
 
-**Actor:** JJ (manual execution on Beelink) — drafted by Claude per approved plan
-**Type:** create + modify
-**Status:** APPROVED — pending JJ execution on Beelink
+**Actor:** JJ (Portainer deploy) — code + compose by Claude per approved plan
+**Type:** create
+**Status:** CODE READY — pending JJ deploy on Beelink
 
 **Resources affected:**
-- Tailscale Serve (HAOS add-on or host): publish `http://localhost:8123` as `https://hass-beelink.<tailnet>.ts.net`
-- HAOS `configuration.yaml`: add `http.cors_allowed_origins` + `http.use_x_forwarded_for` + `http.trusted_proxies`
-- HA user account: generate one long-lived access token (HA Profile → Security)
+- New Portainer stack `ha-bridge` on the Beelink (node:20-bookworm-slim)
+- Kali container `/data/bridges/ha-bridge.mjs` (new file, copy from repo)
+- Kali container `/data/bridges/node_modules/home-assistant-js-websocket` (new dep)
+- Firestore collection `homeassistant/states/entities/{entity_id}` (new)
+- Firestore doc `homeassistant/meta/bridge/status` (new)
+- Firestore rules (pending — need read rule for authed users on `homeassistant/**`)
+
+**Why:** `cmd.mcmahonmc.com/homeassistant` cannot direct-connect to HA via
+Tailscale Serve. Chrome's Private Network Access silently blocks cross-origin
+fetches from public Vercel origin to Tailscale CGNAT (100.64.0.0/10). Curl
+and direct browser nav work fine; only cross-origin `fetch`/`WebSocket`
+hang. Root-caused and documented 2026-04-17 after extensive testing.
+
+JJ chose a Firestore bridge (matches what `mcmahon-command-center/ARCHITECTURE.md`
+has always documented) over the alternatives: Tailscale Funnel (HA on public
+internet), or a Next.js tsnet server-side proxy (bigger code lift). Bridge
+is cheap to build, keeps HA off the public internet, and gives free history
+as a side-effect.
+
+**Files added:**
+- `mcmahon-command-center/bridge/ha-bridge.mjs` — the bridge script
+- `mcmahon-command-center/bridge/package.json` — adds `home-assistant-js-websocket` dep
+- `home-assistant/infra/ha-bridge/docker-compose.yml` — Portainer stack compose
+- `home-assistant/infra/ha-bridge/README.md` — deployment runbook
+
+**Steps (JJ runs on the Beelink, each is reversible):**
+
+1. Get `ha-bridge.mjs` onto the Kali container's `/data/bridges/` volume.
+   From the Beelink:
+   ```
+   docker cp "$(winpath)/Command Center/mcmahon-command-center/bridge/ha-bridge.mjs" kali:/data/bridges/
+   # Or rsync/scp if that's how the other bridges get there.
+   ```
+2. Install the new dep inside Kali:
+   ```
+   docker exec -it kali bash -c 'cd /data/bridges && npm install home-assistant-js-websocket'
+   ```
+3. Portainer → Stacks → Add stack, name `ha-bridge`, paste
+   `infra/ha-bridge/docker-compose.yml`, set `HA_TOKEN` env var to the
+   contents of `F:\jjdev\keys\ha-llat.txt`. Deploy.
+4. Verify in Portainer logs:
+   ```
+   [ha] connecting to http://192.168.120.3:8123
+   [ha] connected; subscribing to entities
+   [ha] flushed N entity state(s); pending=...
+   ```
+5. In Firebase console, confirm `homeassistant/states/entities/*` docs are
+   appearing and updating. Expect ~50-200 entity docs for a typical HA setup.
+
+**Rollback:**
+1. Portainer → Stacks → ha-bridge → Stop + Delete.
+2. Optional cleanup of `/data/bridges/ha-bridge.mjs` inside Kali (harmless to leave).
+3. Firestore docs under `homeassistant/` will go stale but cost nothing;
+   delete via Firebase console if desired.
+
+**Follow-ups (not part of this entry):**
+- Firestore security rules update to allow authed users to read `homeassistant/**`
+- New dashboard hook `useHomeAssistantFirestore` in `mcmahon-command-center/src/hooks/`
+- Swap `/homeassistant` page to use the new hook (phase 1b)
+- Cloud Function `haCommand` for service-call write path (phase 2)
+
+**Verified:** no — pending deploy.
+
+---
+
+### 2026-04-17 — Expose HAOS via Tailscale Serve + CORS allow cmd.mcmahonmc.com
+
+**Actor:** JJ + Claude (via Chrome MCP + core-ssh terminal)
+**Type:** create + modify
+**Status:** EXECUTED 2026-04-17 — Tailscale Serve live; cross-origin fetch from Vercel blocked by Chrome PNA (see separate Firestore bridge entry above)
+
+**Resources affected:**
+- Tailnet `tail675bb.ts.net`: MagicDNS + HTTPS Certificates enabled (admin console)
+- HAOS Tailscale add-on (`a0d7b954_tailscale`): `share_homeassistant: serve` on port 443, `userspace_networking: false` (kernel mode; userspace mode caused TLS renegotiation that Chrome rejects)
+- HAOS node `homeassistant.tail675bb.ts.net` (100.76.246.76) now reachable over Tailscale with valid Let's Encrypt cert
+- HAOS `configuration.yaml` appended with `http.use_x_forwarded_for: true`, `trusted_proxies: [127.0.0.1, ::1, 172.30.32.0/23]`, `cors_allowed_origins: [https://cmd.mcmahonmc.com]` (backup: `configuration.yaml.bak-2026-04-17`)
+- HA user account `JJ McMahon`: new LLAT `command-center-dashboard` (saved to `F:\jjdev\keys\ha-llat.txt`)
 
 **Why:** The `/homeassistant` page at `https://cmd.mcmahonmc.com` cannot open a WebSocket to `http://192.168.1.190:8123` — browsers block mixed-content. Tailscale Serve gives HAOS a real Let's Encrypt cert on `*.ts.net` without opening any ports to the public internet. Only Tailscale-authed devices can reach the hostname, which matches JJ's access pattern (all his devices are on the tailnet).
 
@@ -65,16 +139,16 @@ Every infrastructure change must be logged here **before the change is applied**
    - Token: paste from step 4
    - Leave the tab — status dot should go `connecting` → `connected` with entity count populating.
 
-**Verify:**
-- Dashboard status dot is green ("connected") with non-zero entity count.
-- `curl -I https://hass-beelink.<tailnet>.ts.net` from any Tailscale-connected device returns 200 with a valid cert.
-- HA Logs (Settings → System → Logs) show no CORS or auth failures.
+**Verified:**
+- `curl https://homeassistant.tail675bb.ts.net/` returns 200 with valid TLS.
+- Direct Chrome navigation to that URL shows HA login page.
+- **Cross-origin fetch from https://cmd.mcmahonmc.com FAILS** — Chrome Private Network Access silently blocks public→CGNAT cross-origin. This is the trigger for the Firestore bridge architecture decision logged above.
 
-**Rollback:**
-1. Remove Tailscale Serve publish: `tailscale serve --https=443 off`
-2. Revert `configuration.yaml` — remove the added `http:` keys, restart HA.
+**Value preserved:** Tailscale Serve is kept running regardless — JJ's phone/iPad can reach HA at `https://homeassistant.tail675bb.ts.net` directly from anywhere on the tailnet. Only the cmd.mcmahonmc.com surface needs the Firestore bridge.
+
+**Rollback (if ever needed):**
+1. Tailscale add-on Configuration → "Share Home Assistant with Serve or Funnel" → `disabled`; Save + Restart.
+2. Revert `configuration.yaml` from `.bak-2026-04-17`; restart HA.
 3. Revoke the LLAT in HA Profile → Security.
-4. `/homeassistant` page reverts to the "Not configured" state with no token in localStorage — benign.
-
-**Verified:** no — pending execution.
+4. Disable HTTPS + MagicDNS in Tailscale admin console (only if the tailnet truly doesn't need them — they're useful for other nodes too).
 

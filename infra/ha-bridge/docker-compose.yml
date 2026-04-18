@@ -1,0 +1,39 @@
+# HA Bridge sidecar — runs ha-bridge.mjs in its own container.
+#
+# Mounts the hacktheplant data volume read-only so it can reuse the
+# existing service-account.json + node_modules + bridges/*.mjs that
+# live at /data/bridges/ inside the Kali container's volume. Same
+# deployment pattern as ids-bridge (see hacktheplanet/suricata-ids/).
+#
+# Pre-reqs (JJ does these once on the Beelink):
+#   1. Copy ha-bridge.mjs to /data/bridges/ on the Kali container
+#   2. Inside Kali: cd /data/bridges && npm install home-assistant-js-websocket
+#   3. Ensure HA LLAT exists; expose it to this stack via HA_TOKEN env
+#      (set in Portainer stack env, do NOT commit the token)
+#
+# Stack name: ha-bridge
+
+version: "3.8"
+
+services:
+  ha-bridge:
+    image: node:20-bookworm-slim
+    container_name: ha-bridge
+    restart: unless-stopped
+    working_dir: /data/bridges
+    command: ["node", "ha-bridge.mjs"]
+    environment:
+      # HA reachable via LAN from the Beelink (no Tailscale needed container-side
+      # since bridge is on the same host as HAOS). HTTP is fine for server-to-server
+      # — it never crosses the tailnet in this path.
+      - HA_URL=http://192.168.120.3:8123
+      - HA_TOKEN=${HA_TOKEN}
+      - NODE_ENV=production
+    volumes:
+      # Source: Kali container's /data volume (bridges/, service-account.json, node_modules).
+      - ht-data:/data:ro
+
+volumes:
+  ht-data:
+    external: true
+    name: hacktheplanet_hacktheplant-data
