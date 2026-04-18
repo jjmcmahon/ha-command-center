@@ -21,9 +21,9 @@ Every infrastructure change must be logged here **before the change is applied**
 
 ### 2026-04-17 — HA Firestore bridge (read path for /homeassistant dashboard)
 
-**Actor:** JJ (Portainer deploy) — code + compose by Claude per approved plan
+**Actor:** Claude (SSH to Kali via id_ed25519_beelink) — approved strategy from JJ
 **Type:** create
-**Status:** CODE READY — pending JJ deploy on Beelink
+**Status:** EXECUTED + VERIFIED 2026-04-17 — 304 entities flowing, dashboard green
 
 **Resources affected:**
 - New Portainer stack `ha-bridge` on the Beelink (node:20-bookworm-slim)
@@ -51,43 +51,44 @@ as a side-effect.
 - `home-assistant/infra/ha-bridge/docker-compose.yml` — Portainer stack compose
 - `home-assistant/infra/ha-bridge/README.md` — deployment runbook
 
-**Steps (JJ runs on the Beelink, each is reversible):**
+**Actual deployment (differs from originally-planned Portainer stack):**
 
-1. Get `ha-bridge.mjs` onto the Kali container's `/data/bridges/` volume.
-   From the Beelink:
-   ```
-   docker cp "$(winpath)/Command Center/mcmahon-command-center/bridge/ha-bridge.mjs" kali:/data/bridges/
-   # Or rsync/scp if that's how the other bridges get there.
-   ```
-2. Install the new dep inside Kali:
-   ```
-   docker exec -it kali bash -c 'cd /data/bridges && npm install home-assistant-js-websocket'
-   ```
-3. Portainer → Stacks → Add stack, name `ha-bridge`, paste
-   `infra/ha-bridge/docker-compose.yml`, set `HA_TOKEN` env var to the
-   contents of `F:\jjdev\keys\ha-llat.txt`. Deploy.
-4. Verify in Portainer logs:
-   ```
-   [ha] connecting to http://192.168.120.3:8123
-   [ha] connected; subscribing to entities
-   [ha] flushed N entity state(s); pending=...
-   ```
-5. In Firebase console, confirm `homeassistant/states/entities/*` docs are
-   appearing and updating. Expect ~50-200 entity docs for a typical HA setup.
+Rather than a separate Portainer stack, the bridge was added to the existing
+Kali container's `/data/bridges/` collection alongside the HTP bridges —
+matches the "HTP Bridge Status" pattern already in memory. start-all.sh was
+appended with an HA-bridge block (marked with `# --- HA bridge (added 2026-04-17) ---`)
+so it relaunches on Kali container restart.
+
+1. `ha-bridge.mjs` scp'd from repo to `/data/bridges/ha-bridge.mjs`.
+2. `npm install home-assistant-js-websocket` run inside Kali.
+3. LLAT scp'd to `/data/bridges/.ha-token` (chmod 600).
+4. start-all.sh appended with HA-bridge launch block reading `$(cat /data/bridges/.ha-token)`.
+5. Bridge launched: `HA_URL=http://192.168.120.3:8123 HA_TOKEN=$(cat /data/bridges/.ha-token) nohup node ha-bridge.mjs > /tmp/ha-bridge.log 2>&1 &`
+6. Log confirms: `[ha] connected; subscribing to entities` → `[ha] flushed 304 entity state(s)`.
+
+The Portainer compose at `infra/ha-bridge/docker-compose.yml` is kept in
+the repo as an alternate deploy path if the Kali-container approach ever
+needs isolation.
 
 **Rollback:**
-1. Portainer → Stacks → ha-bridge → Stop + Delete.
-2. Optional cleanup of `/data/bridges/ha-bridge.mjs` inside Kali (harmless to leave).
-3. Firestore docs under `homeassistant/` will go stale but cost nothing;
-   delete via Firebase console if desired.
+1. SSH to Kali, `pkill -f 'node .*ha-bridge.mjs'`.
+2. Edit `/data/bridges/start-all.sh` to remove the HA-bridge block (or just
+   leave it — it no-ops if `.ha-token` is gone).
+3. Delete `/data/bridges/.ha-token` to stop auto-relaunch.
+4. Firestore docs under `homeassistant/` cost nothing at rest; delete via
+   Firebase console if truly cleaning up.
 
-**Follow-ups (not part of this entry):**
-- Firestore security rules update to allow authed users to read `homeassistant/**`
-- New dashboard hook `useHomeAssistantFirestore` in `mcmahon-command-center/src/hooks/`
-- Swap `/homeassistant` page to use the new hook (phase 1b)
-- Cloud Function `haCommand` for service-call write path (phase 2)
+**Follow-ups:**
+- ✅ Firestore security rules updated (ruleset 3921cd96-9d10-4a4a-8a03-055294776f01,
+  deployed via firebase-admin SecurityRules API from Kali using the service account).
+- ✅ New dashboard hook `useHomeAssistantFirestore` shipped at cc commit 51fc26b.
+- ✅ `/homeassistant` page swapped to the new hook — deploy dpl_7ZAjEcHEmYi3c8w1jQgP2gNoQfdC
+  is READY on cmd.mcmahonmc.com. Overview + Lighting + Settings tabs all show
+  live Firestore data.
+- ⏳ Cloud Function `haCommand` for service-call write path (Phase 2).
 
-**Verified:** no — pending deploy.
+**Verified:** yes — dashboard shows 304 entities, weather 79°F/Clear Night,
+lights panel shows "1 of 9 lights on" with Office at 100% matching live HA state.
 
 ---
 
