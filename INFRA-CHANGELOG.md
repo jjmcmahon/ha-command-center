@@ -85,7 +85,14 @@ needs isolation.
 - ✅ `/homeassistant` page swapped to the new hook — deploy dpl_7ZAjEcHEmYi3c8w1jQgP2gNoQfdC
   is READY on cmd.mcmahonmc.com. Overview + Lighting + Settings tabs all show
   live Firestore data.
-- ⏳ Cloud Function `haCommand` for service-call write path (Phase 2).
+- ✅ Phase 2 write path shipped — **NOT** via a Cloud Function (scope changed).
+  Went with the Firestore command-queue pattern instead (same as HTP's
+  `hacktheplant/commands/queue`). Dashboard `callService` writes to
+  `homeassistant/commands/queue/{auto-id}`; bridge `onSnapshot`s it and
+  executes via its already-held WS connection. Verified end-to-end
+  2026-04-17: `homeassistant.update_entity` round-tripped enqueue→exec→delete
+  in 2276ms. Rules deployed as ruleset 9015fbed-1951-4377-8064-4e9635365567.
+  No Cloud Function needed, no public HA exposure, no new infra.
 
 **Verified:** yes — dashboard shows 304 entities, weather 79°F/Clear Night,
 lights panel shows "1 of 9 lights on" with Office at 100% matching live HA state.
