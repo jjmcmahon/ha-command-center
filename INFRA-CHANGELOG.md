@@ -19,6 +19,33 @@ Every infrastructure change must be logged here **before the change is applied**
 
 ## Changelog
 
+### 2026-04-20 (later) — Apply HA Core + add-on updates (HA-47)
+
+**Actor:** Claude (via `scripts/ha-apply-updates.mjs` calling HA service WS API with LLAT at `F:\jjdev\keys\ha-llat.txt`)
+**Type:** modify
+**Status:** EXECUTED + VERIFIED 2026-04-20 — HA is running 2026.4.3, state=RUNNING, 0 pending updates
+
+**Resources affected:**
+- HA Core: 2026.4.1 → 2026.4.3
+- Mosquitto broker add-on: 6.5.2 → 7.0.1 (major version bump)
+- Z-Wave JS add-on: 1.1.0 → 1.2.0
+
+**Why:** Housekeeping before starting on Frigate (which uses MQTT) and before any Zigbee/Z-Wave work. Mosquitto 6→7 is a major upstream bump — easier to land standalone than during an integration change. Closes HA-47.
+
+**Process:**
+1. Full Supervisor backup via `hassio.backup_full` service call (newer `backup.create_automatic` failed because no backup agent is configured in HA Settings; `backup.create` doesn't exist in this HA version; legacy hassio route worked). Named `pre-update-2026-04-20T21-21-36`.
+2. Polled `backup/info` WS until `backing_up: false` (~30s).
+3. Applied add-on updates first so HA core stays up through the check: Mosquitto → done in ~20s, Z-Wave JS → done in ~50s.
+4. Fired HA Core update last; WS call timed out as expected (HA restart breaks the connection). Post-restart REST probe at `/api/config` confirmed version=2026.4.3, state=RUNNING.
+
+**Gotcha for future deploys:** HA's new `backup.create_automatic` service requires an explicit backup agent (Settings → System → Backups → "Default backup settings"). Currently none is configured, so scripts must fall back to `hassio.backup_full`. Consider configuring a local+cloud backup agent for resilience.
+
+**Rollback:** Restore the `pre-update-2026-04-20T21-21-36` backup from HA Settings → System → Backups. All three component versions roll back together.
+
+**Verified:** yes — `/api/config` reports 2026.4.3 RUNNING; `/api/states` reports 0 pending update entities.
+
+---
+
 ### 2026-04-20 — ha-bridge v3: persist activity events for >24h history (CC-148)
 
 **Actor:** Claude (Windows scp/ssh via Git ssh.exe + `id_ed25519_beelink`) — approved by JJ ("Fix 4")
