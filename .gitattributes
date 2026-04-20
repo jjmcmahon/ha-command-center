@@ -1,0 +1,20 @@
+# Normalize all text files to LF in the repo, check out with LF.
+# This overrides any Windows core.autocrlf=true that would otherwise
+# dirty the working tree on every checkout/edit.
+* text=auto eol=lf
+
+# Explicit binary types (no conversion)
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.eot binary
+*.pdf binary
+*.zip binary
+*.gz binary
