@@ -4,3 +4,40 @@ dist/
 .env.local
 *.local
 .DS_Store
+
+# Scratch files left by agent tooling (sandbox-owned, Windows can't delete them).
+# Safe to rm manually when you spot them. They never carry project state.
+*.out
+*.err
+*.tmp
+*.mdcopy
+.ha-bridge-copy.*
+.ha-hook-copy.*
+.ha-page-copy.*
+.commit-msg*.txt
+.cmsg*.txt
+.close-*.txt
+.comment-*.txt
+.new-issue-*.txt
+.grep.*
+.fix-crlf.*
+.commit-crlf.*
+.node-ver.*
+.infra-cl.*
+
+# Audit script outputs (regenerated on demand)
+scripts/*.out.json
+
+# OS/editor
+Thumbs.db
+
+# Misc one-off scratch text files agent tooling leaves behind
+fb.txt
+fbadmin.txt
+fbpkg.txt
+sshdir.txt
+users.txt
+vd.txt
+vdc.txt
+vp.txt
+who.txt
