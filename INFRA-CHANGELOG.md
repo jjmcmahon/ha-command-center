@@ -19,6 +19,49 @@ Every infrastructure change must be logged here **before the change is applied**
 
 ## Changelog
 
+### 2026-04-20 — ha-bridge v2: forward area_id + push area registry to Firestore
+
+**Actor:** Claude (Windows scp/ssh via Git ssh.exe + `id_ed25519_beelink`) — approved by JJ ("do your suggested fixes please... this makes sense")
+**Type:** modify
+**Status:** EXECUTED + VERIFIED 2026-04-20 — 14 areas / 169 entities mapped, dashboard deploy READY
+
+**Resources affected:**
+- Kali container `/data/bridges/ha-bridge.mjs` (replaced; source of truth: `mcmahon-command-center/bridge/ha-bridge.mjs` @ 5881aa6)
+- Firestore collection `homeassistant/meta/areas/{area_id}` (new — 14 docs, one per HA area)
+- Firestore state docs `homeassistant/states/entities/{id}` now carry `area_id` + `area_name` fields (additive — no breaking change)
+- Vercel deploy `dpl_D9eih2UStC5W9dL5DY725Kvfbf9u` (bridge commit) and `dpl_FvNG1WJqzTFy131fdyamC53GT4Gv` (dashboard commit) — both READY
+
+**Why:** Dashboard `RoomCard` filters on `e.area_id` but the bridge wasn't forwarding it — every entity fell through to the entity-id prefix fallback, which only covered 3 of 6 hardcoded rooms. Also, the hardcoded 6-room list didn't match JJ's actual 14-area HA setup (Media Room didn't exist; Upstairs/Downstairs Living Room, Whitney's Office, Master Bed, Garage, Entryway, Ping Pong Room, Back Yard, and Beam all had entities but no card). Unblocks HA #49.
+
+**Bridge changes:**
+- On connect, fetch `config/{area,device,entity}_registry/list`; build `entity_id → effective area_id` (entity.area_id with device.area_id fallback, matching HA's own resolution order)
+- Subscribe to `area_registry_updated`, `device_registry_updated`, `entity_registry_updated` events → debounced registry refresh
+- `toFirestorePayload` includes `area_id` + `area_name` on every state write
+- Full area list pushed to `homeassistant/meta/areas/{area_id}` with merge+delete-stale semantics
+- Heartbeat now reports `registry_loaded`, `entities_with_area`, `areas_count` for dashboard observability
+
+**Dashboard changes (69dfe15):**
+- `useHomeAssistantFirestore` hook reads `area_id`/`area_name` from state docs and subscribes to `meta/areas`
+- `page.tsx` `ROOMS` array removed — `RoomCard` now renders one per HA area from `ha.areas`; empty rooms self-hide
+
+**Deploy steps (executed):**
+1. Edit bridge + commit (`5881aa6`) and push → Vercel READY
+2. SCP new `ha-bridge.mjs` to `root@192.168.120.3:/data/bridges/ha-bridge.mjs`
+3. `pkill -9 -f ha-bridge.mjs` + `bash /data/bridges/ensure-ha-bridge.sh`
+4. Verify log: `[ha] registries loaded: 14 area(s), 107 device(s), 446 entity registry row(s); 169 entities mapped to an area`
+5. Commit + push dashboard (`69dfe15`) → Vercel READY
+
+**Rollback:**
+- Bridge: `ssh root@192.168.120.3 "cd /data/bridges && git checkout <pre-change-commit> -- ha-bridge.mjs"` — actually the Kali copy isn't a git checkout; do `scp` of the previous `ha-bridge.mjs` from before `5881aa6`, then `pkill -f ha-bridge.mjs; bash ensure-ha-bridge.sh`. The OLD file is recoverable from git at commit `ea8a85b^:bridge/ha-bridge.mjs` or older.
+- Dashboard: `git revert 69dfe15 && git push` — the hook's extra fields are additive; revert is safe. Without the bridge rollback, the dashboard `ha.areas` will simply be empty and no RoomCards render until the bridge is restored (no crash).
+
+**Verified:** yes
+- Bridge log shows registries loaded, 169 entities mapped, heartbeat reporting `registry_loaded: true`
+- Both Vercel deploys READY
+- Known follow-up: 277 of 446 entities have no area in HA — JJ needs to assign these via HA Settings → Areas & Zones (physical walk-through; auto-mapping by keyword only catches 5/277 confidently)
+
+---
+
 ### 2026-04-17 — HA Firestore bridge (read path for /homeassistant dashboard)
 
 **Actor:** Claude (SSH to Kali via id_ed25519_beelink) — approved strategy from JJ
