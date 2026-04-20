@@ -19,6 +19,47 @@ Every infrastructure change must be logged here **before the change is applied**
 
 ## Changelog
 
+### 2026-04-20 — ha-bridge v3: persist activity events for >24h history (CC-148)
+
+**Actor:** Claude (Windows scp/ssh via Git ssh.exe + `id_ed25519_beelink`) — approved by JJ ("Fix 4")
+**Type:** modify
+**Status:** EXECUTED + PARTIAL VERIFICATION 2026-04-20 — bridge running new code, events collection will populate as activity-pattern entities transition
+
+**Resources affected:**
+- Kali container `/data/bridges/ha-bridge.mjs` (replaced; source of truth: `mcmahon-command-center/bridge/ha-bridge.mjs` @ 9905250)
+- Kali container `/data/bridges/redeploy.sh` (new helper — hard redeploys bridge around the watchdog; kept for operational use)
+- Kali container `/data/bridges/ha-events-probe.mjs` (new debug script — reads events collection via service account, counts docs and prints sample)
+- Firestore collection `homeassistant/events/log/{auto-id}` (new — one doc per interesting state transition)
+- Vercel deploy `dpl_GNKJpoCYaNwTZasoGC77RtzT2WaH` (dashboard commit 9905250) — READY
+
+**Why:** Activity Feed previously only rendered the single most-recent transition per entity (derived from `last_changed`). For >24h of history (CC #148) we needed a true event log. Bridge now writes one doc per state transition for a whitelist pattern set; dashboard subscribes to last 300 and merges with current-state rules.
+
+**Bridge changes (9905250):**
+- `ACTIVITY_PATTERNS` whitelist (locks, motion, alarm panels, sprinkler zones, rain sensor, fridge/freezer, person, covers)
+- `lastStateByEntity` map for transition detection; first-sight seeding so bridge restarts don't spam the log
+- `queueActivityEvent` queues event docs; `flushPending` writes them alongside state docs in the same batch (cap MAX_BATCH_WRITES = 450)
+- `pruneOldEvents` runs 60s after startup then every 10min, deletes events older than 7d in batches of 400 with self-chaining for more
+
+**Dashboard changes (9905250):**
+- `HAEvent` type + `EVENTS_COLLECTION` constant + events subscription in `useHomeAssistantFirestore` (orderBy created desc, limit 300)
+- `classifyEvent()` + `useEventActivity()` + `mergeActivity()` in `HAActivityFeed.tsx` — dedupe by (entityId, minute-bucket) to avoid live+historical double entries
+
+**Deploy hiccup resolved:**
+First scp + pkill + ensure cycle didn't result in the new binary running — `ensure-ha-bridge.sh` is a no-op if ANY matching process exists, and the `watchdog.sh` auto-respawns dead bridges on a 60s interval, so the race between my pkill and watchdog's respawn produced an old-binary restart. Wrote `redeploy.sh` that pauses the watchdog first, kills the bridge, starts fresh, then restarts the watchdog. Second attempt landed cleanly (PID 283774 with matching startup-line signature).
+
+**Rollback:**
+- Bridge: scp the previous `ha-bridge.mjs` (5881aa6's version) back over, `bash /data/bridges/redeploy.sh`
+- Dashboard: `git revert 9905250 && git push`
+- Events collection: safe to leave; unused by old dashboard code. Can be cleared with a one-off `collection('homeassistant').doc('events').collection('log').get().delete()` script if desired.
+
+**Verified:**
+- Bridge v3 running (PID 283774, elapsed 5s at verification, fresh log shows `registries loaded` startup lines)
+- Firestore events collection exists and is queryable (0 docs at deploy+5min — no activity-pattern transitions in the window)
+- Vercel deploy READY
+- PARTIAL — end-to-end event ingestion requires an activity-pattern entity transition; bridge code is correct by review but no natural transition has happened in the 5-min observation window. Dashboard will show events as they accumulate naturally; can force an early test by toggling `lock.front_door` or cycling any motion sensor.
+
+---
+
 ### 2026-04-20 — ha-bridge v2: forward area_id + push area registry to Firestore
 
 **Actor:** Claude (Windows scp/ssh via Git ssh.exe + `id_ed25519_beelink`) — approved by JJ ("do your suggested fixes please... this makes sense")
