@@ -86,16 +86,16 @@ Read at `F:\jjdev\claude\.claude\kb\`. Categories: `environment/`, `patterns/`, 
 
 ## Centralized Docs: jj-portfolio
 
-The `jj-portfolio` repo (`F:\jjdev\projects\jj-portfolio`, GitHub: `jjmcmahon/jj-portfolio`) is the **centralized, version-controlled documentation repo** for the entire portfolio. It contains:
+The `jj-portfolio` repo (`F:\jjdev\projects\PPM - Personal Project Manager`, GitHub: `jjmcmahon/jj-portfolio`) is the **centralized, version-controlled documentation repo** for the entire portfolio. It contains:
 
 - `ppm/` – Portfolio management (cost ledger, specs, architecture overview, archive)
 - `kb/` – Version-controlled mirror of the Knowledge Base
 - `agentvault/` – Backup of AgentVault session handoffs and PIFs
 - `templates/` – Shared templates: ARCHITECTURE.md, INFRA-CHANGELOG.md, CLAUDE-MD-TEMPLATE.md
 
-**When you update KB content**, update both the local copy (`F:\jjdev\claude\.claude\kb\`) and the repo copy (`F:\jjdev\projects\jj-portfolio\kb\`). The local copy syncs to Firestore; the repo copy is the version-controlled backup.
+**When you update KB content**, update both the local copy (`F:\jjdev\claude\.claude\kb\`) and the repo copy (`F:\jjdev\projects\PPM - Personal Project Manager\kb\`). The local copy syncs to Firestore; the repo copy is the version-controlled backup.
 
-**When you update PPM content** (cost ledger, specs), update the repo copy at `F:\jjdev\projects\jj-portfolio\ppm\`.
+**When you update PPM content** (cost ledger, specs), update the repo copy at `F:\jjdev\projects\PPM - Personal Project Manager\`.
 
 ## Deeper Context
 - **PIF:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\PROJECT.pif.yaml`
@@ -103,7 +103,7 @@ The `jj-portfolio` repo (`F:\jjdev\projects\jj-portfolio`, GitHub: `jjmcmahon/jj
 - **Device inventory:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\DEVICE-INVENTORY.md`
 - **Day 1 runbook:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\DAY1-RUNBOOK.md`
 - **HACS install list:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\HACS-INSTALL-LIST.md`
-- **Cost ledger:** `F:\jjdev\projects\jj-portfolio\ppm\costs\COST-LEDGER.md`
+- **Cost ledger:** `F:\jjdev\projects\PPM - Personal Project Manager\costs\COST-LEDGER.md`
 - **Architecture:** `ARCHITECTURE.md` in this repo root – infra map, stack details, recovery playbook
 - **Infra changelog:** `INFRA-CHANGELOG.md` in this repo root – every infra change logged
 
@@ -114,7 +114,7 @@ The `jj-portfolio` repo (`F:\jjdev\projects\jj-portfolio`, GitHub: `jjmcmahon/jj
 3. **Track work in GitHub Issues** – prefix `HA-`, label `agent:cowork`
 
 **If applicable:**
-- Cost changed → note in handoff + update `F:\jjdev\projects\jj-portfolio\ppm\costs\COST-LEDGER.md`
+- Cost changed → note in handoff + update `F:\jjdev\projects\PPM - Personal Project Manager\costs\COST-LEDGER.md`
 - Found a reusable pattern → write to KB
 - New critical gotcha → add above
 - Scratch in repo root → move to `claude-temp\` or delete
