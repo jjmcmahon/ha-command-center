@@ -1,0 +1,49 @@
+# Adaptive Lighting Configuration Profiles
+# Uses the Adaptive Lighting HACS integration for circadian rhythm
+# These are configuration profiles, not traditional automations
+# Install via HACS → Integrations → Adaptive Lighting
+
+# Living Room Profile
+# - Color temp: 2200K (night) to 5500K (midday)
+# - Brightness: 20% (night) to 100% (midday)
+# - Transition: smooth throughout the day
+adaptive_lighting:
+  - name: "Living Room"
+    lights:
+      - light.living_room  # TODO: replace with actual entities
+    min_color_temp: 2200
+    max_color_temp: 5500
+    min_brightness: 20
+    max_brightness: 100
+    sleep_brightness: 5
+    sleep_color_temp: 2000
+    transition: 45
+    detect_non_ha_changes: true
+
+  # Bedroom Profile
+  # - Narrower range, dimmer max for relaxation
+  - name: "Bedroom"
+    lights:
+      - light.bedroom  # TODO: replace
+    min_color_temp: 2000
+    max_color_temp: 4500
+    min_brightness: 5
+    max_brightness: 80
+    sleep_brightness: 1
+    sleep_color_temp: 2000
+    transition: 60
+    detect_non_ha_changes: true
+
+  # Office Profile
+  # - Cooler temps for focus, higher min brightness
+  - name: "Office"
+    lights:
+      - light.office  # TODO: replace
+    min_color_temp: 2700
+    max_color_temp: 6500
+    min_brightness: 30
+    max_brightness: 100
+    sleep_brightness: 5
+    sleep_color_temp: 2200
+    transition: 45
+    detect_non_ha_changes: true

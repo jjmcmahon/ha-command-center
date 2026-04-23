@@ -1,0 +1,51 @@
+# Presence-Aware Room Lighting
+# Uses Aqara FP2 mmWave for room-level occupancy with time-aware brightness
+automation:
+  - alias: "Presence — Living Room Lights On"
+    description: "Turn on lights when room occupied, brightness based on time of day"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.fp2_living_room_presence  # TODO: replace
+        to: "on"
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.living_room  # TODO: replace
+        data:
+          brightness_pct: >
+            {% set hour = now().hour %}
+            {% if hour >= 22 or hour < 6 %}
+              20
+            {% elif hour >= 18 %}
+              50
+            {% else %}
+              80
+            {% endif %}
+          color_temp_kelvin: >
+            {% set hour = now().hour %}
+            {% if hour >= 22 or hour < 6 %}
+              2200
+            {% elif hour >= 18 %}
+              2700
+            {% else %}
+              4000
+            {% endif %}
+          transition: 2
+
+  - alias: "Presence — Living Room Lights Off"
+    description: "Turn off lights 30s after room empties"
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.fp2_living_room_presence  # TODO: replace
+        to: "off"
+        for: "00:00:30"
+    condition:
+      - condition: state
+        entity_id: input_boolean.movie_mode
+        state: "off"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: light.living_room  # TODO: replace
+        data:
+          transition: 3

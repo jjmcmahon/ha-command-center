@@ -1,0 +1,43 @@
+# Goodnight Routine
+# All lights off, doors locked, thermostat adjusted, security armed
+automation:
+  - alias: "Goodnight Routine"
+    description: "End-of-day shutdown — lights, locks, climate, security"
+    trigger:
+      - platform: state
+        entity_id: input_boolean.goodnight
+        to: "on"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: all
+        data:
+          transition: 5
+      - service: lock.lock
+        target:
+          entity_id: all
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.thermostat  # TODO: replace
+        data:
+          temperature: 68
+          hvac_mode: heat_cool
+      - service: alarm_control_panel.alarm_arm_home
+        target:
+          entity_id: alarm_control_panel.home_alarm  # TODO: replace
+      - delay: "00:00:05"
+      - service: light.turn_on
+        target:
+          entity_id: light.bedroom_nightlight  # TODO: replace
+        data:
+          brightness_pct: 10
+          color_temp_kelvin: 2200
+      - delay: "00:10:00"
+      - service: light.turn_off
+        target:
+          entity_id: light.bedroom_nightlight  # TODO: replace
+        data:
+          transition: 10
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.goodnight

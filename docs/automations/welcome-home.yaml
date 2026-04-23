@@ -1,0 +1,52 @@
+# Welcome Home Automation
+# Triggers when JJ arrives home — lights, climate, music, greeting
+automation:
+  - alias: "Welcome Home"
+    description: "Warm welcome sequence when JJ arrives"
+    trigger:
+      - platform: state
+        entity_id: person.jj  # TODO: replace after onboarding
+        from: "not_home"
+        to: "home"
+    condition:
+      - condition: state
+        entity_id: input_boolean.away_mode
+        state: "on"
+    action:
+      - service: light.turn_on
+        target:
+          entity_id: light.living_room  # TODO: replace with actual entity
+        data:
+          brightness_pct: 80
+          color_temp_kelvin: 3000
+          transition: 3
+      - delay: "00:00:02"
+      - service: light.turn_on
+        target:
+          entity_id: light.hallway_accent  # TODO: replace
+        data:
+          brightness_pct: 60
+          color_temp_kelvin: 2700
+          transition: 2
+      - service: climate.set_temperature
+        target:
+          entity_id: climate.thermostat  # TODO: replace
+        data:
+          temperature: 72
+          hvac_mode: heat_cool
+      - service: media_player.play_media
+        target:
+          entity_id: media_player.living_room_speaker  # TODO: replace
+        data:
+          media_content_id: "spotify:playlist:37i9dQZF1DXcBWIGoYBM5M"
+          media_content_type: "music"
+      - delay: "00:00:03"
+      - service: tts.speak
+        target:
+          entity_id: tts.piper  # TODO: replace
+        data:
+          message: "Welcome home, JJ."
+          media_player_entity_id: media_player.living_room_speaker  # TODO: replace
+      - service: input_boolean.turn_off
+        target:
+          entity_id: input_boolean.away_mode

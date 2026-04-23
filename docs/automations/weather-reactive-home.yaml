@@ -1,0 +1,66 @@
+# Weather-Reactive Home Lighting
+# Changes accent lighting based on current weather conditions
+automation:
+  - alias: "Weather-Reactive Lighting"
+    description: "Accent lights change color based on weather conditions"
+    trigger:
+      - platform: state
+        entity_id: weather.home  # TODO: replace if using different weather entity
+    action:
+      - choose:
+          - conditions:
+              - condition: state
+                entity_id: weather.home
+                state: "lightning-rainy"
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.accent_lights  # TODO: replace
+                data:
+                  rgb_color: [75, 0, 130]
+                  brightness_pct: 60
+                  transition: 5
+          - conditions:
+              - condition: state
+                entity_id: weather.home
+                state: "rainy"
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.accent_lights  # TODO: replace
+                data:
+                  rgb_color: [100, 130, 160]
+                  brightness_pct: 50
+                  transition: 5
+          - conditions:
+              - condition: state
+                entity_id: weather.home
+                state: "sunny"
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.accent_lights  # TODO: replace
+                data:
+                  rgb_color: [255, 200, 50]
+                  brightness_pct: 70
+                  transition: 5
+          - conditions:
+              - condition: state
+                entity_id: weather.home
+                state: "cloudy"
+            sequence:
+              - service: light.turn_on
+                target:
+                  entity_id: light.accent_lights  # TODO: replace
+                data:
+                  rgb_color: [180, 180, 180]
+                  brightness_pct: 40
+                  transition: 5
+        default:
+          - service: light.turn_on
+            target:
+              entity_id: light.accent_lights  # TODO: replace
+            data:
+              color_temp_kelvin: 3500
+              brightness_pct: 50
+              transition: 5

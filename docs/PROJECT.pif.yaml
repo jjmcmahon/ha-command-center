@@ -1,0 +1,93 @@
+---
+project: Home Assistant
+owner: JJ McMahon
+status: active
+phase: P1 — Foundation
+last_updated: 2026-04-06
+---
+
+hardware:
+  server: Beelink MINI S12 (Intel N95, 12GB LPDDR5)
+  storage: 512GB internal SSD (datadisk migrated from USB)
+  os: Home Assistant OS 17.1, BootSlot A
+  ip: 192.168.1.190 (DHCP — needs static reservation)
+  url: http://homeassistant.local:8123
+
+repos:
+  dashboard: github.com/jjmcmahon/ha-command-center
+  command_center: github.com/jjmcmahon/mcmahon-command-center
+
+local_paths:
+  projects: F:\claude\projects\
+  tools: F:\claude\tools\bin\gh.exe
+  obsidian: F:\obsidian\AgentVault\Home Assistant\
+  temp: F:\temp\
+
+sessions:
+  - date: 2026-04-04
+    summary: Initial planning, AgentVault docs, automation YAMLs, React dashboard scaffold, GitHub repos created, shopping list research
+    deliverables:
+      - DAY1-RUNBOOK.md
+      - 6 automation YAMLs + helpers.yaml
+      - DEVICE-INVENTORY.md template
+      - HACS-INSTALL-LIST.md
+      - ha-command-center React scaffold (pushed to GitHub)
+      - 48 tasks added to mcmahon-command-center
+      - Gmail draft: 25 coolest HA project ideas
+
+  - date: 2026-04-06
+    summary: Hardware setup day. F: drive wiped (Etcher incident), recovered all repos and docs. Flashed HA OS via Rufus to 16GB USB, booted Beelink, migrated datadisk to internal 512GB SSD, completed onboarding. 11 devices auto-discovered.
+    issues_encountered:
+      - Etcher failed repeatedly on 8GB USB, corrupted partitions
+      - F: drive wiped during Etcher attempts — all local files lost
+      - Recovered: cloned repos from GitHub, recreated AgentVault docs from session memory
+      - 8GB USB too small for HA OS + Core + Docker (1.9GB free, blocked installation)
+      - Booting without Ethernet caused DNS loop (No Supervisor connectivity)
+      - Fixed: ha dns restart, reflash to 16GB USB, boot with Ethernet connected
+      - Migrated datadisk to internal 512GB SSD via ha os datadisk move /dev/sda
+      - Console I/O errors (sdb3) after USB removal — expected, harmless
+    deliverables:
+      - HA OS running on Beelink internal 512GB SSD
+      - Onboarding complete (JJ McMahon admin account)
+      - 11 devices auto-discovered
+      - gh-cli reinstalled at F:\claude\tools\bin\gh.exe
+      - Git credential helper updated to new path
+      - Portainer + Uptime Kuma added to backlog (tasks 618, 619)
+      - Runbook updated with 16GB minimum USB requirement
+    new_paths:
+      - "F:\\jjdev\\ → F:\\claude\\projects\\"
+      - "F:\\tools\\ → F:\\claude\\tools\\"
+
+next_session:
+  priorities:
+    - Assign static IP via router DHCP reservation
+    - Install HACS (Terminal & SSH add-on first)
+    - Install Mushroom Cards, Bubble Card, card-mod, layout-card
+    - Review and add 11 discovered devices
+    - Device inventory walkthrough (room by room)
+    - Install Portainer add-on
+  notes:
+    - Gmail draft with 25 HA project ideas still unsent
+    - Console errors on Beelink monitor are from removed USB — will clear on reboot
+    - React dashboard (ha-command-center) ready to connect once long-lived access token is generated
+    - JJ is PM. Confirm before assuming. Look at screenshots. Don't dismiss concerns.
+
+shopping_list:
+  phase_2:
+    - item: SLZB-06 Zigbee Coordinator
+      price: $35-45
+      purpose: Ethernet Zigbee coordinator
+    - item: Aeotec Z-Stick 7
+      price: ~$55
+      purpose: Z-Wave USB controller
+    - item: Google Coral USB TPU
+      price: $35-60
+      purpose: Frigate AI object detection
+  phase_3:
+    - item: Aqara FP2 mmWave Sensor
+      price: $62-83 each
+      purpose: Room-level presence detection
+  phase_4:
+    - item: ESP32-S3-BOX-3
+      price: $45-55
+      purpose: Local voice satellite

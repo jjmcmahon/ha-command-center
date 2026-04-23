@@ -1,0 +1,53 @@
+# Helper Entities — Virtual Switches for Automations
+# Create these in HA: Settings → Devices & Services → Helpers
+
+# Toggle switches (input_boolean)
+input_boolean:
+  movie_mode:
+    name: Movie Mode
+    icon: mdi:movie-open
+  goodnight:
+    name: Goodnight
+    icon: mdi:weather-night
+  guest_mode:
+    name: Guest Mode
+    icon: mdi:account-group
+  away_mode:
+    name: Away Mode
+    icon: mdi:home-export-outline
+  do_not_disturb:
+    name: Do Not Disturb
+    icon: mdi:bell-off
+  gaming_mode:
+    name: Gaming Mode
+    icon: mdi:controller
+  party_mode:
+    name: Party Mode
+    icon: mdi:party-popper
+
+# Dropdown selectors (input_select)
+input_select:
+  house_mode:
+    name: House Mode
+    options:
+      - Home
+      - Away
+      - Sleep
+      - Guest
+      - Movie
+      - Gaming
+      - Party
+    initial: Home
+    icon: mdi:home-variant
+  lighting_scene:
+    name: Lighting Scene
+    options:
+      - Normal
+      - Bright
+      - Dim
+      - Movie
+      - Night Light
+      - Energize
+      - Relax
+    initial: Normal
+    icon: mdi:lightbulb-group

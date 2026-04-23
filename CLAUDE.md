@@ -4,10 +4,10 @@ Custom React dashboard + Home Assistant OS on Beelink MINI S12. This repo is for
 
 ## Start of Session – READ THIS FIRST
 
-1. **Read the prior handoff** → `F:\obsidian\AgentVault\AgentVault\Home Assistant\SESSION_HANDOFF.md`
+1. **Read the prior handoff** → `SESSION_HANDOFF.md (in this repo root)`
    - Older numbered handoffs (`SESSION-3-HANDOFF.md` through `SESSION-6-HANDOFF.md`) exist for historical reference but are deprecated. The canonical file is `SESSION_HANDOFF.md` going forward.
-2. **Skim the PIF** → `F:\obsidian\AgentVault\AgentVault\Home Assistant\PROJECT.pif.yaml`
-3. **Check device inventory** if doing hardware/integration work → `F:\obsidian\AgentVault\AgentVault\Home Assistant\DEVICE-INVENTORY.md`
+2. **Skim the PIF** → `docs/PROJECT.pif.yaml`
+3. **Check device inventory** if doing hardware/integration work → `docs\DEVICE-INVENTORY.md`
 4. **Check open GitHub Issues** → `gh issue list --repo jjmcmahon/ha-command-center --state open --label agent:cowork`
 5. **Verify git is initialized and has a remote.** Run `git status` and `git remote -v`. If this project isn't a git repo yet, initialize it: `git init`, create a GitHub repo with `gh repo create`, add the remote, and push. Every project must be version controlled — no exceptions.
 
@@ -20,8 +20,8 @@ Custom React dashboard + Home Assistant OS on Beelink MINI S12. This repo is for
 | Git | system path (`git`) | Standard git ops |
 | Node / npm | system path (`node`, `npm`) | Vite + React build |
 | Desktop Commander | MCP (`mcp__Desktop_Commander__*`) | Read/write files on F:, run shell commands |
-| Obsidian (AgentVault) | `F:\obsidian\AgentVault\AgentVault\` | Session handoffs, PIFs, project notes |
-| KB | `F:\jjdev\claude\.claude\kb\` | Reusable patterns (synced to /kb daily 8 AM) |
+| PPM (shared-knowledge layer) | `F:\jjdev\projects\PPM - Personal Project Manager\` | SHARED-RESOURCES.md, patterns/, decisions/, templates/, costs/ |
+| Skills | `F:\jjdev\claude\.claude\skills\` | Executable agent behavior (auto-triggered) |
 | Cowork temp | `F:\jjdev\claude-temp\` | Throwaway working files – NOT the workspace |
 | HAOS web UI | http://192.168.1.190:8123 | Home Assistant config, integrations, automations |
 
@@ -50,7 +50,7 @@ The full procedure — especially backup requirements and shared-resource cautio
 
 - Active scratch / WIP → `F:\jjdev\claude-temp\`
 - Finalized deliverables → `home-assistant\outputs\`
-- HA config exports / device dumps → `F:\obsidian\AgentVault\AgentVault\Home Assistant\` (the inventory + runbook structure already exists there)
+- HA config exports / device dumps → `docs\\` (the inventory + runbook structure already exists there)
 
 ## The 30-Second Version
 
@@ -80,42 +80,44 @@ gh issue list --repo jjmcmahon/ha-command-center --state open --label agent:cowo
 - **Beelink also runs HackThePlant Kali container** – don't reboot or take it offline without checking with JJ.
 - **Numbered handoff files exist** (`SESSION-3-HANDOFF.md` through `SESSION-6-HANDOFF.md`) – these are historical. Going forward, use the single canonical `SESSION_HANDOFF.md`.
 
-## Knowledge Base (KB)
+## Portfolio Resources
 
-Read at `F:\jjdev\claude\.claude\kb\`. Categories: `environment/`, `patterns/`, `tools/`, `troubleshooting/`, `workflows/`. Write reusable HA patterns (websocket, automation patterns, integration recipes) at end-of-session.
+Cross-project reference lives in **PPM** at `F:\jjdev\projects\PPM - Personal Project Manager` (= `jjmcmahon/jj-portfolio` repo):
 
-## Centralized Docs: jj-portfolio
+- `SHARED-RESOURCES.md` — collision-awareness catalog. Check before touching shared infra.
+- `patterns/` — cross-project patterns (ex-KB): firebase-shared-project, vercel-task-type-build, firestore-rules-via-admin-sdk, etc.
+- `decisions/` — portfolio ADRs (session handoff location, KB retirement, shared-knowledge scope).
+- `templates/` — shared templates (CLAUDE-MD-TEMPLATE, ARCHITECTURE, INFRA-CHANGELOG).
 
-The `jj-portfolio` repo (`F:\jjdev\projects\PPM - Personal Project Manager`, GitHub: `jjmcmahon/jj-portfolio`) is the **centralized, version-controlled documentation repo** for the entire portfolio. It contains:
+Executable agent behavior (auto-triggered patterns) lives in skills at `F:\jjdev\claude\.claude\skills\`. If a pattern is "agent should DO X when Y happens," it belongs in a skill — not PPM, not in here.
 
-- `ppm/` – Portfolio management (cost ledger, specs, architecture overview, archive)
-- `kb/` – Version-controlled mirror of the Knowledge Base
-- `agentvault/` – Backup of AgentVault session handoffs and PIFs
-- `templates/` – Shared templates: ARCHITECTURE.md, INFRA-CHANGELOG.md, CLAUDE-MD-TEMPLATE.md
+The KB folder at `F:\jjdev\claude\.claude\kb\` is retired (ADR 0002). Don't write to it.
 
-**When you update KB content**, update both the local copy (`F:\jjdev\claude\.claude\kb\`) and the repo copy (`F:\jjdev\projects\PPM - Personal Project Manager\kb\`). The local copy syncs to Firestore; the repo copy is the version-controlled backup.
 
-**When you update PPM content** (cost ledger, specs), update the repo copy at `F:\jjdev\projects\PPM - Personal Project Manager\`.
+## Centralized Docs: PPM (= jj-portfolio)
+
+The `jjmcmahon/jj-portfolio` repo lives locally at `F:\jjdev\projects\PPM - Personal Project Manager` and is the portfolio's shared-knowledge layer. See the "Portfolio Resources" section above for what's in it. When you update portfolio-level content (cost ledger, shared resources, ADRs, patterns), edit directly in PPM and commit.
+
 
 ## Deeper Context
-- **PIF:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\PROJECT.pif.yaml`
-- **Latest handoff:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\SESSION_HANDOFF.md`
-- **Device inventory:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\DEVICE-INVENTORY.md`
-- **Day 1 runbook:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\DAY1-RUNBOOK.md`
-- **HACS install list:** `F:\obsidian\AgentVault\AgentVault\Home Assistant\HACS-INSTALL-LIST.md`
+- **PIF:** `docs/PROJECT.pif.yaml`
+- **Latest handoff:** `SESSION_HANDOFF.md (in this repo root)`
+- **Device inventory:** `docs\DEVICE-INVENTORY.md`
+- **Day 1 runbook:** `docs\DAY1-RUNBOOK.md`
+- **HACS install list:** `docs\HACS-INSTALL-LIST.md`
 - **Cost ledger:** `F:\jjdev\projects\PPM - Personal Project Manager\costs\COST-LEDGER.md`
 - **Architecture:** `ARCHITECTURE.md` in this repo root – infra map, stack details, recovery playbook
 - **Infra changelog:** `INFRA-CHANGELOG.md` in this repo root – every infra change logged
 
 ## End of Session
 
-1. **Write/update the handoff** → `F:\obsidian\AgentVault\AgentVault\Home Assistant\SESSION_HANDOFF.md` (canonical filename – don't create new `SESSION-N-HANDOFF.md` files)
+1. **Write/update the handoff** → `SESSION_HANDOFF.md (in this repo root)` (canonical filename – don't create new `SESSION-N-HANDOFF.md` files)
 2. **Push to main** – triggers Firestore sync for dashboard
 3. **Track work in GitHub Issues** – prefix `HA-`, label `agent:cowork`
 
 **If applicable:**
 - Cost changed → note in handoff + update `F:\jjdev\projects\PPM - Personal Project Manager\costs\COST-LEDGER.md`
-- Found a reusable pattern → write to KB
+- Found a cross-project pattern — write to `PPM\patterns\{name}.md` (executable behavior — propose a skill)
 - New critical gotcha → add above
 - Scratch in repo root → move to `claude-temp\` or delete
 - Infrastructure changed → verify `INFRA-CHANGELOG.md` entry is complete with rollback steps
