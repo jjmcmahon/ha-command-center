@@ -29,28 +29,22 @@ Custom React dashboard + Home Assistant OS on Beelink MINI S12. This repo is for
 
 Surface root causes. Don't write batch wrappers, shell hacks, or polyfills without flagging the underlying issue first.
 
-## Infrastructure Changes – Pre-Approval Required
+## Infrastructure Changes — Graded Rule
 
-**DO NOT create, modify, or delete infrastructure resources without explicit approval from JJ.** This includes but is not limited to:
+Infra covers Docker/Portainer, AWS (Lambda, EC2, S3, CloudFormation, IAM), Firebase (Firestore indexes, Functions, Auth, Hosting), DNS, CI/CD, DB migrations, Vercel project settings/env vars. Reads (`docker ps`, `aws s3 ls`, `firebase projects:list`) are always fine — the rule is about *changes*.
 
-- Docker/Portainer stacks (create, update, delete)
-- AWS resources (Lambda, EC2, S3, CloudFormation stacks)
-- Firebase resources (Firestore indexes, Functions, Auth config)
-- DNS records
-- CI/CD pipeline changes
-- Database schema migrations
-- Vercel project settings or environment variables
+| Action | Pre-approval? | Backup? | Log to `INFRA-CHANGELOG.md`? |
+|--------|---------------|---------|------------------------------|
+| **Reversible modify** (stop, pause, scale-to-zero, env var tweak, DNS TTL, disable trigger) | no | no | **yes** |
+| **Create** (new stack, Lambda, bucket, DNS record, Vercel project, CI workflow, GitHub repo) | **yes** | no | **yes** |
+| **Delete** (single resource) | no | **yes — verified readable** | **yes, with backup path** |
+| **Teardown** (multi-resource retire, DB drop, stack destroy, project-wide cleanup) | **yes** | **yes — verified readable** | **yes, with backup path** |
 
-**Before making any infra change:**
+Secrets are separate — handled under the `secrets-policy` skill. Never bulk-delete or rotate without JJ's approval. Anything shared across projects (especially `mcmahon-mission-control`) needs per-resource confirmation even when the action would otherwise be in the no-approval lane.
 
-1. **Describe the change** – what you want to do and why
-2. **Wait for JJ's explicit "go ahead"** – don't proceed on your own judgment
-3. **Log it in `INFRA-CHANGELOG.md`** in the project root – entry MUST include: date, actor, type (create/modify/delete), resources affected, motivation, and rollback steps
-4. **After applying** – verify the change worked and update the changelog entry
+`INFRA-CHANGELOG.md` entries include: date, actor (`claude-cowork`), type (modify/create/delete/teardown), resources affected, motivation, rollback steps, backup location (for deletes/teardowns). If the file doesn't exist, copy from `F:\jjdev\projects\PPM - Personal Project Manager\templates\INFRA-CHANGELOG.md`.
 
-If `INFRA-CHANGELOG.md` doesn't exist in the project yet, create it using the template from `F:\jjdev\projects\jj-portfolio\templates\INFRA-CHANGELOG.md`.
-
-Reading code, checking status, and querying infrastructure state (e.g., `docker ps`, `aws s3 ls`) are fine without approval. The rule is about *changes*, not *reads*.
+The full procedure — especially backup requirements and shared-resource caution — lives in the `infra-change-guard` skill.
 
 ## Directory Hygiene
 
