@@ -19,6 +19,45 @@ Every infrastructure change must be logged here **before the change is applied**
 
 ## Changelog
 
+### 2026-09-16 — Native integration pass: add WeatherFlow (Tempest), recover Blink, diagnose Hue
+
+**Actor:** Claude (HA WS + REST API via LLAT at `/data/bridges/.ha-token`, driven over SSH from `root@192.168.120.3`)
+**Type:** create + modify
+**Status:** EXECUTED + VERIFIED 2026-09-16
+
+**Resources affected:**
+- `weatherflow` config entry `01M2NRJ3DBPHVP4NJ9RF7NJ9M6` — **CREATED**. Native local-UDP WeatherFlow integration; discovered the Tempest on the LAN with no credentials required. 35 entities across two devices: `ST_00111505` (Tempest station) and `HB_00119290` (hub).
+- `blink` config entry — reloaded. Recovered 6 of 8 previously-`unavailable` entities (kitten_cam, office, doorbell). The earlier `blinkpy` failure (`Cannot connect to host rest-u025.immedia-semi.com`) was transient upstream throttling, **not** an AdGuard block — DNS resolves to 3.168.24.x and HTTPS returns 200 from the LAN. `gaming_area` camera remains `unavailable` (device genuinely offline).
+- `smlight` config entry — reloaded.
+- `hue` config entry `01KNMEVRRBH079GZ3B47Y78FEG` — reloaded (diagnostic only, no config change).
+- Entity registry: `sensor.hue_{1,2,3,4}_zigbee_connectivity` and `sensor.hue_bridge_zigbee_connectivity` — `disabled_by: integration` → `null` (un-hidden). These are the bridge's own per-bulb connectivity resources; they are the only way to see what the Hue Bridge actually thinks of each bulb.
+- `button.slzb_06u_zigbee_restart` — pressed once (diagnostic; SLZB-06U has zero paired ZHA devices, so this was a no-op risk-wise and produced no change).
+
+**Why:** JJ asked to move off Homey/HomeKit passthroughs onto native integrations, and to fix the four Hue bulbs showing `unavailable`.
+
+**Hue finding (no fix applied — cause is physical):**
+The Hue Bridge itself reports `connectivity_issue` for all four bulbs, while `sensor.hue_bridge_zigbee_connectivity` = `connected`. HA is faithfully reporting the bridge. All four dropped at 10:56:33–10:56:42 on 2026-09-16 — four bulbs, one room (Office), nine seconds. That signature is loss of mains power (wall switch / breaker) or a mesh drop, not software.
+`light.office` is the Hue **room group** (`is_hue_group: true`, `hue_type: room`, members = Hue 1–4). Hue groups have no connectivity resource, so they never go `unavailable` — the group reports its last *commanded* state (`on`, bri 255, 2732K) regardless of whether any member is reachable. This is why the Hue app appears to show the room working.
+**Action for JJ:** check the Office wall switch/breaker; if powered, cycle the bulbs at the switch (off 10s, on) so the bridge re-adopts them.
+
+**Corrected in-flight (recording so it isn't re-derived):** `sensor.slzb_06u_core_chip_temp` = 101.48 and `sensor.slzb_06u_zigbee_chip_temp` = 98.24 are **°F, not °C** — HA's unit system is US customary (`temperature: °F`). The device's own `/ha_sensors` endpoint reports 38.60 °C / 34.69 °C, which is exactly those values converted. The SLZB-06U is healthy: ethernet up, 6.3 days uptime, 19 h socket uptime. An earlier read of these as Celsius wrongly suggested a thermally-failing radio.
+
+**ZHA note (not changed):** ZHA is `loaded` on the SLZB-06U (`socket://192.168.120.143:6638`, znp/CC2652) with an **empty network** — coordinator only, zero paired devices — on **channel 11**, which is also a Hue default channel. Harmless today but worth moving before devices are migrated off Homey onto ZHA.
+
+**Rollback:**
+- WeatherFlow: Settings → Devices & Services → WeatherFlow → Delete. Purely local UDP listener; removing it touches nothing else.
+- Connectivity sensors: set `disabled_by` back to `"integration"` via `config/entity_registry/update`, or Disable in the entity settings UI.
+- Reloads and the button press are not persistent state; nothing to roll back.
+
+**Verified:** yes — `config_entries/get` shows `weatherflow` state=`loaded`; `st_00111505_temperature` 102.992 °F, `uv_index` 9.51, `battery` 100, `illuminance` 104870, wind and lightning sensors all reporting. Blink entity states re-read post-reload.
+
+**Still requires JJ (credentials / physical, cannot be done from here):**
+- **Withings** — a `withings` discovery flow is already pending at step `oauth_discovery` (DHCP-discovered). Needs Application Credentials (client ID + secret) from the Withings developer portal before the flow can complete. There is **no** `withings` config entry today.
+- **Nest thermostat** — no `nest` config entry. Native requires a Google Device Access project ($5 one-time) + OAuth credentials. Currently reaching HA only via the Homey HomeKit bridge.
+- **Apple TV "Media Room (3)"** and **HomePod gen 2 "Media Room"** — zeroconf flows pending at step `confirm`; pairing PIN is shown on the device.
+- **LG webOS TV UR9000PUA** — SSDP flow pending at step `pairing`; requires accepting the prompt on the TV. A `homekit_controller` flow for "LG webOS TV CDBD" is also pending at `pair`.
+- **`androidtv_remote` "Projector"** — `setup_retry`, cannot reach 192.168.120.207:6466.
+
 ### 2026-04-20 (later) — Apply HA Core + add-on updates (HA-47)
 
 **Actor:** Claude (via `scripts/ha-apply-updates.mjs` calling HA service WS API with LLAT at `F:\jjdev\keys\ha-llat.txt`)

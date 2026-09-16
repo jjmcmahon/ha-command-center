@@ -1,6 +1,38 @@
 # Home Assistant - Session Handoff
 
-**Session end:** 2026-04-20 (latest; prior session 2026-04-17→18 detail preserved below)
+**Session end:** 2026-09-16 (latest; prior sessions 2026-04-20 and 2026-04-17→18 detail preserved below)
+
+## 2026-09-16 TL;DR — native integration pass + Hue diagnosis
+
+**Shipped:**
+- **Tempest is native now.** Created the `weatherflow` config entry (`01M2NRJ3DBPHVP4NJ9RF7NJ9M6`). It's a local-UDP integration — no cloud account, no credentials, it just found the station on the LAN. 35 entities live across `ST_00111505` (station) and `HB_00119290` (hub): temperature, feels-like, dew point, wet bulb, humidity, pressure, wind speed/gust/lull/direction (+averages), UV, irradiance, illuminance, lightning count/distance/energy, precipitation type/intensity, air density, vapor pressure, battery.
+- **Blink recovered** by reloading the config entry. 6 of 8 dead entities came back. The `blinkpy` "Cannot connect to rest-u025.immedia-semi.com" error was transient upstream throttling — DNS resolves fine (3.168.24.x) and HTTPS returns 200 from the LAN, so AdGuard was **not** blocking it. `gaming_area` camera is still `unavailable`; that device is genuinely offline.
+
+**Hue — diagnosed, cause is physical, not software.**
+Chain of evidence: `hue` entry `loaded` → correct bridge (ECB5FAFFFE1B961B @ 192.168.120.213, answers `/api/config`) → zero hue errors in `system_log` → un-hid the bridge's own per-bulb connectivity sensors → **the Hue Bridge itself reports `connectivity_issue` for all four bulbs** while `sensor.hue_bridge_zigbee_connectivity` = `connected`.
+All four died 10:56:33–10:56:42 on 2026-09-16. Four bulbs, one room (Office), nine seconds → mains power or mesh, not HA.
+**The trap:** `light.office` shows `on` / bri 255 / 2732K and looks healthy. It's the Hue **room group** (`is_hue_group: true`, members = Hue 1–4). Groups have no connectivity resource so they never go `unavailable` — it's echoing the last commanded state. That's why the Hue app looks like it's working. Do not treat `light.office` as evidence the bulbs are alive.
+**Next action is JJ's:** check the Office wall switch/breaker; if powered, cycle at the switch (off 10s, on) to force re-adoption.
+
+**Two corrections worth carrying forward (both were wrong turns this session):**
+1. `sensor.slzb_06u_core_chip_temp` 101.48 / `zigbee_chip_temp` 98.24 are **°F** — this HA runs US customary units. Device's own `/ha_sensors` says 38.60 °C / 34.69 °C, the exact conversions. The SLZB-06U is healthy (ethernet up, 6.3 d uptime). Read as Celsius they look like a radio cooking itself; they aren't.
+2. "Blink, Tempest and Withings are all signed up in the portal" ≠ configured in HA. A full `config_entries/get` dump showed **no** `weatherflow`, `withings`, or `nest` entries existed. Vendor-portal signup and an HA config entry are different things — always dump the entries rather than trusting the integrations page from memory.
+
+**ZHA (unchanged, flagged):** loaded on the SLZB-06U (`socket://192.168.120.143:6638`, znp/CC2652), **empty network** — coordinator only, zero paired devices — on **channel 11**, a Hue default channel. Not today's cause, but move it before migrating devices off Homey onto ZHA.
+
+**Blocked on JJ (credentials / physical only):**
+| Thing | State | What's needed |
+|---|---|---|
+| Withings | flow pending at `oauth_discovery` (DHCP-discovered) | Application Credentials from the Withings developer portal |
+| Nest thermostat | no entry; via Homey HomeKit bridge only | Google Device Access project ($5 one-time) + OAuth creds |
+| Apple TV "Media Room (3)" | zeroconf flow at `confirm` | PIN shown on device |
+| HomePod gen 2 "Media Room" | zeroconf flow at `confirm` | PIN shown on device |
+| LG webOS TV UR9000PUA | SSDP flow at `pairing` | accept prompt on the TV |
+| LG webOS TV CDBD | homekit_controller flow at `pair` | HomeKit pairing code |
+| androidtv_remote "Projector" | `setup_retry` | device unreachable at 192.168.120.207:6466 |
+| Hue 1–4 | bridge says `connectivity_issue` | wall switch / power cycle |
+
+**Repo hygiene note:** the repo root is littered with ~120 untracked scratch files from the April sessions (`gc*.out`, `verify*.err`, `openlist*.out`, `.grep.out` at 11 MB, etc.). They're gitignored so `git status` is clean, but they violate the "never drop scratch in a repo root" rule. Not deleted — flagged for JJ to green-light a sweep.
 
 ## 2026-04-20 TL;DR
 
