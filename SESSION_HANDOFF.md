@@ -1,6 +1,26 @@
 # Home Assistant - Session Handoff
 
-**Session end:** 2026-09-16 (latest; prior sessions 2026-04-20 and 2026-04-17→18 detail preserved below)
+**Session end:** 2026-09-17 (latest; prior sessions 2026-09-16, 2026-04-20 and 2026-04-17→18 detail preserved below)
+
+## 2026-09-17 TL;DR — verification pass over the Nest work
+
+Audited what a parallel session had built. Nest is genuinely working — `climate.ping_pong_room_mcmahon_nest`, 72 °F / cool / 48 %, plus temperature, humidity and fan-timer sensors. Both repos clean and pushed, no conflicts. **And the thing that matters most checks out: `mcmahon-mission-control`'s consent screen is In production, so there is no 7-day refresh-token expiry.** That is the failure mode that otherwise breaks Nest every week.
+
+Three things were not as documented. All now fixed and logged in INFRA-CHANGELOG:
+
+1. **Pub/Sub was never connected, and the documented fix could not work.** The handoff said "Reconfigure → pick the subscription". HA 2026.9.1's `NestFlowHandler` supports no `reconfigure`, no `reauth` and no options flow — all three probed and rejected. The subscription was provably unconsumed: oldest-unacked-message age climbed 4.95 min → 7.95 min over twelve minutes. **Decision: skipped** (thermostat only, no cameras/doorbells, so polling is fine) and the subscription was deleted. Topic and Device Access Events left in place, harmless.
+2. **A whole orphaned GCP project.** `mcmahon-nest` — created as the isolated home for Nest — was never used; the parallel session made a *second* OAuth client in `mcmahon-mission-control` instead. Shut down 2026-09-17, deletes 2026-10-17.
+3. **`climate.downstairs` (the 162 °F ghost) was Homey's copy of the same physical Nest thermostat.** Disabled, not deleted — `homekit_controller` recreates deleted entities on reload while Homey still advertises the accessory.
+
+Also: **ZHA moved off channel 11 → 25** while its network is still empty, because changing channel after devices are paired forces a re-pair. PAN ID preserved, `nwk_update_id` 0 → 1.
+
+**Two corrections to carry forward:**
+- `zigpy.application: Watchdog failure` is **2 occurrences in 42 hours**, not a storm. Over a TCP-attached coordinator that is normal noise. Don't chase it.
+- Hue bulbs reading `connectivity_issue` again on 2026-09-17 is **the Office wall switch being off**, confirmed with JJ — same as 2026-09-16. This is the expected signature, not a fault. See the 09-16 entry for how to tell the difference in one read.
+
+**Known-open (unchanged):** Withings (needs developer-portal credentials — note its HA discovery flow has since **disappeared** from the pending list and will need re-triggering), Apple TV "Media Room (3)" + HomePod gen 2, LG webOS TV ×2, `androidtv_remote` "Projector" unreachable at 192.168.120.207:6466, Blink `gaming_area` camera offline, 4 orphaned z2m MQTT entities, ~49 stale `mobile_app` entities. Three WeatherFlow entities went unavailable since 09-16 — not chased, likely hub diagnostics.
+
+**Worth knowing:** a `HomeAssistant-jjmcmahon7` GCP project also exists with Firebase enabled, unused by any of this. Left alone — flagging it so it isn't mistaken for part of the Nest setup.
 
 ## 2026-09-16 TL;DR — native integration pass + Hue diagnosis
 

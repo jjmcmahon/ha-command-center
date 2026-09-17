@@ -19,6 +19,52 @@ Every infrastructure change must be logged here **before the change is applied**
 
 ## Changelog
 
+### 2026-09-17 — Verification pass: delete orphaned Nest Pub/Sub subscription + `mcmahon-nest` project; retire Homey thermostat ghost; move ZHA off channel 11
+
+**Actor:** claude-cowork (HA WS/REST over SSH; GCP via the built-in browser). JJ approved each teardown.
+**Type:** delete + modify
+**Status:** EXECUTED + VERIFIED 2026-09-17
+
+This entry exists because an audit of the previous entry found three things that were not as documented. Recording the corrections as well as the changes.
+
+**1. Pub/Sub subscription `home-assistant-nest-sub` — DELETED**
+
+The previous entry left "JJ must Reconfigure HA and pick the subscription" as the last step. Two findings:
+- **HA never attached to it.** The subscription's *oldest unacked message age* climbed monotonically — 4.95 min, then 7.95 min twelve minutes later. Messages were arriving and nothing was acking them. Confirmed no second subscription existed on the topic, so HA was not consuming via any other path either.
+- **The described fix was impossible.** HA 2026.9.1's `NestFlowHandler` supports **no** `reconfigure` step, **no** `reauth` step and **no** options flow — all three were probed and rejected (`Handler NestFlowHandler doesn't support step reconfigure`, `Invalid handler specified`). There is no "⋮ → Reconfigure → pick subscription" route in this version. The only way to attach a subscription is to delete and re-add the config entry, costing a full Google OAuth round trip.
+
+**Decision (JJ's):** skip it. SDM here is a **thermostat only** — no cameras, no doorbells — so push events buy little over polling, and polling is what Nest is doing now and is working. The subscription was deleted so it stops accruing undeliverable messages (it would also have self-expired after 31 days of inactivity, silently).
+
+**Left in place deliberately:** the topic `projects/mcmahon-mission-control/topics/home-assistant-nest` and Events enabled on the Device Access project. Messages now publish to a topic with no subscription and are discarded — harmless. Re-create a subscription there if push events are ever wanted.
+
+**2. GCP project `mcmahon-nest` — SHUT DOWN** (project number `546950360898`; scheduled deletion **2026-10-17**, recoverable until then — that window is the backup for the delete rule)
+
+Created 2026-09-16 as the deliberately isolated home for Nest. The parallel session that finished the work instead built everything in `mcmahon-mission-control` with a **second, different** OAuth client (`628101617033-…`), leaving `mcmahon-nest` holding two enabled APIs, a published consent screen and an unused OAuth client. Nothing referenced it. Deleting it removes the split-brain where a future cleanup of one project would break Nest in the other. Dead credentials annotated in `F:\jjdev\keys\nest-oauth.json`.
+
+**3. `climate.downstairs` — DISABLED** (`disabled_by: user`, not deleted)
+
+The 162 °F ghost. Registry shows it was `homekit_controller` device **"Downstairs / Thermostat / Google Nest"** via the Homey Pro bridge — i.e. Homey's copy of *the same physical thermostat* the native integration now owns, and Homey was the one misreporting. **Disabled rather than deleted on purpose:** `homekit_controller` recreates deleted entities on reload for as long as Homey keeps advertising the accessory, so a delete would not stick. `disabled_by: user` does. To remove it at source, un-expose the thermostat in Homey.
+
+**4. ZHA network channel 11 → 25**
+
+`zha/network/change_channel` to 25. Verified: channel now 25, `nwk_update_id` 0 → 1, `pan_id CB2B` and extended PAN ID unchanged (network identity preserved).
+
+**Why now rather than later:** the ZHA network is **empty** — coordinator only, zero paired devices. Changing a Zigbee channel after devices are paired is disruptive (end devices often fail to follow and need re-pairing). Doing it while empty is free. Channel 11 is also a Hue default, so this removes a future overlap before devices get migrated off Homey onto ZHA.
+
+**Caveat:** `channel_mask` in the stored backup still reads `[11]` while the operating channel is 25. The mask governs re-forming, not current operation, so if the network is ever re-formed from that backup it could land back on 11. Worth re-checking after any ZHA restore.
+
+**Correction to an earlier read:** `zigpy.application: Watchdog failure` is **2 occurrences across 42 hours** (2026-09-15 23:40 and 2026-09-17 17:13), not a recurring storm. For a znp coordinator reached over TCP (`socket://192.168.120.143:6638`) that is ordinary network noise. No action taken.
+
+**Also verified, no action needed:** `mcmahon-mission-control`'s OAuth consent screen is **In production** (External, 1 user). There is therefore **no 7-day refresh-token expiry** — the failure mode that would otherwise break Nest weekly.
+
+**Rollback:**
+- Pub/Sub subscription: recreate a pull subscription named `home-assistant-nest-sub` on the existing topic; it carries no state.
+- `mcmahon-nest`: restore from Manage Resources → Resources pending deletion, before 2026-10-17.
+- `climate.downstairs`: set `disabled_by` back to `null` via `config/entity_registry/update`.
+- ZHA channel: `zha/network/change_channel` back to 11. Free while the network stays empty.
+
+**Verified:** yes — subscription list shows only `eventarc-…-billingkillswitch-…` remaining; `mcmahon-nest` reports "pending deletion, scheduled after Oct 17, 2026"; `/api/states` returns `climate.ping_pong_room_mcmahon_nest` as the only `climate.*` entity; `zha/network/settings` reports channel 25.
+
 ### 2026-09-16 — Google Nest SDM: OAuth client + Device Access project (Homey HomeKit bypass)
 
 **Actor:** claude-cowork (built-in browser, driven with JJ watching; JJ paid the $5 Device Access fee himself)
