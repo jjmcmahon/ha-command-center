@@ -19,6 +19,23 @@ Every infrastructure change must be logged here **before the change is applied**
 
 ## Changelog
 
+### 2026-09-16 — Google Nest SDM: OAuth client + Device Access project (Homey HomeKit bypass)
+
+**Actor:** claude-cowork (built-in browser, driven with JJ watching; JJ paid the $5 Device Access fee himself)
+**Type:** create
+**Status:** EXECUTED + VERIFIED 2026-09-17 (HA `nest` entry `01M2R61YEMR7RDFR31EV84G8DM` loaded; `climate.ping_pong_room_mcmahon_nest` reads 72°F / cool / 48%)
+
+**Resources affected:**
+- GCP `mcmahon-mission-control` → Google Auth Platform → OAuth client **"Home Assistant (Nest SDM)"** (Web application) — **CREATED**. Client ID `628101617033-cjcjr6qncljcfsasogl7mak7enlplqnj.apps.googleusercontent.com`; secret in `F:\jjdev\keys\nest-sdm-oauth-secret.txt`. Redirect URI `https://my.home-assistant.io/redirect/oauth`.
+- Google Device Access console → project **"McMahon Home Assistant"** — **CREATED**. Project ID `4fc5080c-67c4-4b8a-b5ce-3626d36e0333`, Sandbox, OAuth client attached. Events **enabled 2026-09-17** on the topic below (console's test publish validated).
+- GCP Pub/Sub topic `projects/mcmahon-mission-control/topics/home-assistant-nest` + pull subscription `home-assistant-nest-sub` — **CREATED 2026-09-17**. IAM: `group:sdm-publisher@googlegroups.com` → `roles/pubsub.publisher` on the topic. HA's config flow had NOT created a topic (nothing but `billing-alerts` existed), so the entry was polling-only until JJ reconfigures the nest entry to this subscription.
+- Verified pre-existing, NOT changed: Smart Device Management API and Cloud Pub/Sub API already enabled on the project; OAuth consent screen External / In production (so no 7-day token expiry). Firebase's auto-created "Web client" untouched.
+
+**Why:** Nest reaches HA only through Homey Pro's HomeKit bridge, which writes °F into HomeKit's Celsius characteristic (HA shows 162°F) and the Homey Nest device is `Unavailable` anyway. Native SDM gives correct units and live state with Homey out of the loop.
+
+**Rollback:** delete the Pub/Sub subscription then topic in GCP; delete the Device Access project (console → project → trash icon; the $5 is not refunded) and delete the OAuth client in GCP → Google Auth Platform → Clients. Remove the `nest` config entry in HA. Nothing else depends on either.
+**Verified:** creation yes (both consoles show the resources); end-to-end pending HA step.
+
 ### 2026-09-16 — Native integration pass: add WeatherFlow (Tempest), recover Blink, diagnose Hue
 
 **Actor:** Claude (HA WS + REST API via LLAT at `/data/bridges/.ha-token`, driven over SSH from `root@192.168.120.3`)
