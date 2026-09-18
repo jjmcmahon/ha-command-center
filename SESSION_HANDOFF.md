@@ -1,6 +1,26 @@
 # Home Assistant - Session Handoff
 
-**Session end:** 2026-09-17 (latest; prior sessions 2026-09-16, 2026-04-20 and 2026-04-17→18 detail preserved below)
+**Session end:** 2026-09-18 (latest; prior sessions 2026-09-17, 2026-09-16, 2026-04-20 and 2026-04-17→18 detail preserved below)
+
+## 2026-09-18 TL;DR — backups existed only in theory
+
+**The big one: this HA had never completed an automatic backup.** Not "the schedule was wrong" — `last_completed_automatic_backup: null`, `recurrence: never`. The newest full backup was 2026-09-10 and it was incidental, created by a version update. Everything in this instance — Z-Wave pairings, Nest, Hue, the lot — was one SD-card failure from being rebuilt by hand.
+
+Now **daily 03:30, 7 copies, all add-ons + database + ssl/share**. Verified twice: manual trigger 09-17 13:06 (47.5 MB, 9 add-ons, 0 failures) and then the **unattended scheduled run at 09-18 03:30:13** (50.8 MB, 9 add-ons). Next 09-19 03:30.
+
+Including add-ons is the part that matters — the Z-Wave JS add-on holds the network keys, and a backup without it means re-pairing every Z-Wave device after a restore.
+
+**The Supervisor API was a red herring — don't build a workaround for it.** `/api/hassio/*` 401ing on long-lived tokens is irrelevant. The native `backup` integration and `backup.create_automatic` work over the normal API, and every `hassio.*` *service* (`backup_full`, `addon_restart`, `host_reboot`…) is callable too. Only the raw REST proxy is blocked.
+
+**MQTT swept — 8 orphans, not 4.** The z2m add-on left 8 `zigbee2mqtt_bridge_*` entities; the earlier count only saw the 4 that were `unavailable`. All removed. **`integration_entities('mqtt')` is now `[]` — the Mosquitto broker has zero consumers**, though the add-on is still installed and running. Removing it is an easy win, pending JJ.
+
+**Correction — most "stale" entities aren't stale.** I called ~49 `mobile_app` entities dead leftovers. They're not: both entries are `loaded` and belong to **JJi17pro** and **JJiPad6thGen**, your current devices. The unavailable ones are Companion-app sensors switched *off on the device*. Deleting them churns the registry for nothing — HA recreates them the instant a sensor is re-enabled. Left alone on purpose. Full triage table in INFRA-CHANGELOG.
+
+**WeatherFlow's 3 unavailable are the lightning sensors** — `lightning_last_distance/energy/strike`. Unavailable because no lightning has struck yet. Working as designed.
+
+Registry backup before the sweep: `PPM\archive\ha-entity-registry-2026-09-17.json` (555 entities, 112 devices).
+
+**Open, pending JJ:** remove the Mosquitto add-on + `mqtt` entry (zero consumers); Blink `gaming_area` camera (6 entities, genuinely offline — keep or drop?); 2 iBeacons out of range (4 entities); Withings credentials; Apple TV / HomePod / LG TV pairing PINs. The `androidtv_remote` Projector entry is **deliberately left in place** — it's upstairs and powered off, and will connect when JJ sets it up.
 
 ## 2026-09-17 TL;DR — verification pass over the Nest work
 

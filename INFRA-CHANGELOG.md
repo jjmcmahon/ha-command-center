@@ -19,6 +19,63 @@ Every infrastructure change must be logged here **before the change is applied**
 
 ## Changelog
 
+### 2026-09-17/18 — Scheduled backups (there were none), MQTT orphan sweep, entity triage
+
+**Actor:** claude-cowork (HA WS/REST over SSH). JJ approved the sweep.
+**Type:** create + delete
+**Status:** EXECUTED + VERIFIED 2026-09-18 (scheduled run fired unattended)
+
+**1. Automatic backups — CONFIGURED. There were none.**
+
+The starting state was worse than an access problem: `automatic_backups_configured: false`, `schedule.recurrence: "never"`, `retention: {copies: null, days: null}`, **`last_completed_automatic_backup: null`** — an automatic backup had never once completed. The newest full backup on the box was 2026-09-10, and it was incidental (auto-created by a version update), not scheduled.
+
+Set via `backup/config/update`:
+- schedule **daily at 03:30**, retention **7 copies**
+- agent `hassio.local` (the only agent; it existed all along — the April note about "no backup agent" was about the *config*, not the agent)
+- `include_all_addons: true`, `include_database: true`, folders `ssl`, `share`, `addons/local`
+
+**Including add-ons was the point.** The Z-Wave JS add-on holds the Z-Wave network keys; a backup without it means re-pairing every Z-Wave device after a restore.
+
+**Verified twice.** Manual trigger 2026-09-17 13:06 → 47.5 MB, 9 add-ons, 0 failures. Then the **unattended scheduled run fired 2026-09-18 03:30:13** → 50.8 MB, 9 add-ons, `with_automatic_settings: true`. Next: 2026-09-19 03:30.
+
+**The Supervisor API was a red herring.** `/api/hassio/*` returning 401 for long-lived tokens does not matter — the native `backup` integration and the `backup.create_automatic` service do the job over the normal authenticated API. The `hassio.*` **services** (`backup_full`, `addon_restart`, `host_reboot`, …) are also all callable that way; only the raw REST proxy is blocked. No workaround needed, and none should be built.
+
+**Cosmetic caveat:** `automatic_backups_configured` still reads `false` even after two successful automatic backups. `next_automatic_backup` is populated and the runs work, so this looks like a UI-onboarding flag rather than functional state. Noted, not chased.
+
+**2. MQTT orphans — 8 entities DELETED (not 4)**
+
+The audit had counted only the 4 `unavailable` ones. There were **8** `zigbee2mqtt_bridge_*` entities left behind by the removed z2m add-on — four unavailable, four quietly alive-but-dead-ended (`connection_state`, `restart_required`, `coordinator_version`, `network_map`). All removed.
+
+**`integration_entities('mqtt')` now returns `[]` — the Mosquitto broker has zero consumers in HA.** The add-on is still installed and running (it shows up in the backup's add-on list). Removing the add-on + `mqtt` config entry is available as a follow-up; not done, pending JJ.
+
+**Backup for the delete:** full entity/device/config-entry registry dumped before the sweep → `PPM\archive\ha-entity-registry-2026-09-17.json` (543 KB, 555 entities, 112 devices).
+
+**3. Entity triage — correction, and why most of the "stale" entities were NOT swept**
+
+An earlier read called ~49 `mobile_app` entities "stale from old devices". **Wrong.** Both `mobile_app` entries are `loaded` and belong to current devices — **JJi17pro (23)** and **JJiPad6thGen (26)**. The unavailable ones are Companion-app sensors *switched off on the device* (`bssid`, `ssid`, `sim_1`, `sim_2`, `connection_type`, `storage`, `activity`, `steps`, `distance`, `cadence`). Deleting them would churn the registry for nothing — HA recreates them the moment a sensor is re-enabled in the app. **Left alone deliberately.**
+
+Correct triage of the 75 unavailable entities:
+| Group | Count | Verdict |
+|---|---|---|
+| `mobile_app` JJi17pro / JJiPad6thGen | 49 | sensors disabled in the Companion app — **not dead**, leave |
+| `mqtt` z2m bridge | 8 | genuinely orphaned — **deleted** |
+| `blink` Gaming Area | 6 | camera genuinely offline — pending JJ |
+| `hue` 1–4 | 4 | Office wall switch off — expected |
+| `ibeacon` (2 beacons) | 4 | out of range / dead battery — pending JJ |
+| `cast` Projector + LG TV | 2 | devices powered off — leave |
+| `androidtv_remote` Projector | 2 | powered off; JJ will set it up later — **entry left in place**, it will connect on power-up |
+| `apple_tv` keyboard focus | 1 | only reports when focused — normal |
+
+**4. WeatherFlow "3 unavailable" — benign, explained**
+
+`sensor.st_00111505_lightning_last_distance`, `_last_energy`, `_last_strike`. Unavailable because **no lightning strike has occurred yet**. Correct behavior; they populate on the first strike. No action.
+
+**Rollback:**
+- Backups: `backup/config/update` with `schedule.recurrence: "never"` and `agent_ids: []`.
+- MQTT entities: restore from `PPM\archive\ha-entity-registry-2026-09-17.json`, or simply re-add the z2m add-on (it would republish discovery).
+
+**Verified:** yes — `backup/info` lists both automatic backups with 9 add-ons and no failures; `next_automatic_backup` = 2026-09-19T03:30; mqtt entity count = 0.
+
 ### 2026-09-17 — Verification pass: delete orphaned Nest Pub/Sub subscription + `mcmahon-nest` project; retire Homey thermostat ghost; move ZHA off channel 11
 
 **Actor:** claude-cowork (HA WS/REST over SSH; GCP via the built-in browser). JJ approved each teardown.
